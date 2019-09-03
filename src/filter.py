@@ -13,12 +13,15 @@ class TwistFilter:
         rospy.loginfo(data)
 
 def main():
-    try:
-        rospy.init_node('twist_filter')
-        filter = TwistFilter()
-        rospy.spin()
-    except rospy.ROSInterruptException:
-        rospy.loginfo('Shutting down...')
+    while not rospy.is_shutdown():
+        try:
+            rospy.init_node('twist_filter')
+            filter = TwistFilter()
+            rospy.spin()
+        except rospy.ROSInterruptException as e:
+            rospy.loginfo(e)
+
+    rospy.loginfo('Shutting down...')
 
 if __name__ == '__main__':
     main()

@@ -45,8 +45,6 @@ class TwistFilter:
         self.filters.angular.y = f
         self.filters.angular.z = f
 
-        print self.filters.linear.z
-
     def set_filter_type(self):
         # Get filter type and sample number
         filter_type = rospy.get_param('filter_type')

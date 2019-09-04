@@ -1,2 +1,3 @@
 /include
+/config/filter_config.yaml
 *.pyc

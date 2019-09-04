@@ -16,6 +16,9 @@ class MAFilter:
         self.num_samples = samples
         self.samples = [0]*self.num_samples
 
+    def __str__(self):
+        print self.samples
+
     def update_samples(self, data):
         '''
         @brief Shifts values of entire sample array right 1 space

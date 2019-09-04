@@ -17,7 +17,7 @@ class MAFilter:
         self.samples = [0]*self.num_samples
 
     def __str__(self):
-        print self.samples
+        return str(self.samples)
 
     def update_samples(self, data):
         '''
@@ -30,6 +30,7 @@ class MAFilter:
         i = self.num_samples - 2
         while i >= 0:
             self.samples[i+1] = self.samples[i]
+            i -= 1
 
         self.samples[0] = data
 
@@ -43,7 +44,7 @@ class MAFilter:
         result = 0
         for s in self.samples:
             result += s
-        return result
+        return result / self.num_samples
 
     def filter_signal(self, data):
         '''

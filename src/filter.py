@@ -28,22 +28,7 @@ class TwistFilter:
         # Set up publishers/subscribers
         self.sub_cmd_in = rospy.Subscriber('cmd_in', Twist, self.filter_twist)
 
-        rospy.loginfo('Filter ready!')
-
-    def _create_filters(self, f):
-        '''
-        @brief Populates self.filters with desired filter type for linear
-               and angular x/y/z values
-        
-        @param f - filter object (from filter_types.py)
-        '''
-
-        self.filters.linear.x = f
-        self.filters.linear.y = f
-        self.filters.linear.z = f
-        self.filters.angular.x = f
-        self.filters.angular.y = f
-        self.filters.angular.z = f
+        rospy.loginfo('Filters ready!')
 
     def set_filter_type(self):
         # Get filter type and sample number
@@ -52,15 +37,26 @@ class TwistFilter:
 
         # Build desired filters
         if filter_type == FilterType.MAF.value:
-            f = MAFilter(samples)
-            self._create_filters(f)
+            self.filters.linear.x = MAFilter(samples)
+            self.filters.linear.y = MAFilter(samples)
+            self.filters.linear.z = MAFilter(samples)
+            self.filters.angular.x = MAFilter(samples)
+            self.filters.angular.y = MAFilter(samples)
+            self.filters.angular.z = MAFilter(samples)
         else:
             raise Exception('ERROR - Uknown filter type: ' + str(filter_type))
 
     def filter_twist(self, data):
-        rospy.loginfo(data)
+        filtered_twist = Twist()
+
         # Get filtered response
-        self.filter.filter_signal(data)
+        filtered_twist.linear.x = self.filters.linear.x.filter_signal(data.linear.x)
+        filtered_twist.linear.y = self.filters.linear.y.filter_signal(data.linear.y)
+        filtered_twist.linear.z = self.filters.linear.z.filter_signal(data.linear.z)
+        filtered_twist.angular.x = self.filters.angular.x.filter_signal(data.angular.x)
+        filtered_twist.angular.y = self.filters.angular.y.filter_signal(data.angular.y)
+        filtered_twist.angular.z = self.filters.angular.z.filter_signal(data.angular.z)
+        
 
 def main():
     while not rospy.is_shutdown():

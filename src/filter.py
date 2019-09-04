@@ -27,6 +27,7 @@ class TwistFilter:
 
         # Set up publishers/subscribers
         self.sub_cmd_in = rospy.Subscriber('cmd_in', Twist, self.filter_twist)
+        self.pub_cmd_out = rospy.Publisher('cmd_out', Twist, queue_size=10)
 
         rospy.loginfo('Filters ready!')
 
@@ -56,6 +57,10 @@ class TwistFilter:
         filtered_twist.angular.x = self.filters.angular.x.filter_signal(data.angular.x)
         filtered_twist.angular.y = self.filters.angular.y.filter_signal(data.angular.y)
         filtered_twist.angular.z = self.filters.angular.z.filter_signal(data.angular.z)
+
+        # Publish output twist
+        cmd_out = filtered_twist
+        self.pub_cmd_out.publish(cmd_out)
         
 
 def main():

@@ -1,0 +1,6 @@
+filter_type: 0
+samples: 1
+acc_linear_max: 1.0
+acc_angular_max: 2.0
+vel_linear_max: 0.5
+vel_angular_max: 0.7

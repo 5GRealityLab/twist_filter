@@ -1,0 +1,10 @@
+<launch>
+    <group ns='twist_filter'>
+        <!-- Load config file -->
+        <rosparam command='load' file='$(find twist_filter)/config/filter_config.yaml' />
+
+        <!-- Launch filter node -->
+        <node name='twist_filter' pkg='twist_filter' type='filter.py' output='screen' />
+    </group>
+    
+</launch>

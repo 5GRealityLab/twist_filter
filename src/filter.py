@@ -25,7 +25,7 @@ class TwistFilter:
         # Create filter sample arrays for each twist component
         try:
             self.filters = TwistFilterObj()
-            self.set_filter_type()
+            self._set_filter_type()
         except Exception as e:
             rospy.loginfo(e)
             return
@@ -39,21 +39,6 @@ class TwistFilter:
         self.pub_cmd_out = rospy.Publisher('filter_out', Twist, queue_size=10)
 
         rospy.loginfo('Filters ready!')
-
-    def set_filter_type(self):
-        # Get filter sample number
-        s = self.config['samples']
-
-        # Build desired filters
-        if self.config['filter_type'] == FilterType.MAF.value:
-            self.filters.linear.x = MAFilter(s)
-            self.filters.linear.y = MAFilter(s)
-            self.filters.linear.z = MAFilter(s)
-            self.filters.angular.x = MAFilter(s)
-            self.filters.angular.y = MAFilter(s)
-            self.filters.angular.z = MAFilter(s)
-        else:
-            raise Exception('ERROR - Uknown filter type: ' + str(filter_type))
 
     def filter_twist(self, data):
         cmd_out = Twist()
@@ -85,8 +70,20 @@ class TwistFilter:
         self.twist_prev = cmd_out
         self.time_prev = time_now
 
-        print cmd_out
-        print '\n'
+    def _set_filter_type(self):
+        # Get filter sample number
+        s = self.config['samples']
+
+        # Build desired filters
+        if self.config['filter_type'] == FilterType.MAF.value:
+            self.filters.linear.x = MAFilter(s)
+            self.filters.linear.y = MAFilter(s)
+            self.filters.linear.z = MAFilter(s)
+            self.filters.angular.x = MAFilter(s)
+            self.filters.angular.y = MAFilter(s)
+            self.filters.angular.z = MAFilter(s)
+        else:
+            raise Exception('ERROR - Uknown filter type: ' + str(filter_type))
 
     def _get_twist_mag(self, v):
         '''
@@ -197,7 +194,7 @@ class TwistFilter:
         sat_twist = twist
 
         # Get linear acceleration
-        acc = self.get_acc(sat_twist, time_delta)
+        acc = self._get_acc(sat_twist, time_delta)
 
         # Calculate magnitudes and get their ratios
         l_mag, a_mag = self._get_twist_mag(acc)
@@ -249,7 +246,7 @@ class TwistFilter:
 
         return scaled_twist
 
-    def get_acc(self, twist, time_delta):
+    def _get_acc(self, twist, time_delta):
         '''
         @brief Returns acceleration of all twist components
         '''

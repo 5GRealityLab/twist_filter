@@ -51,23 +51,23 @@ class TwistFilter:
             raise Exception('ERROR - Uknown filter type: ' + str(filter_type))
 
     def filter_twist(self, data):
-        filtered_twist = Twist()
+        cmd_out = Twist()
 
         # Get filtered response
-        filtered_twist.linear.x = self.filters.linear.x.filter_signal(data.linear.x)
-        filtered_twist.linear.y = self.filters.linear.y.filter_signal(data.linear.y)
-        filtered_twist.linear.z = self.filters.linear.z.filter_signal(data.linear.z)
-        filtered_twist.angular.x = self.filters.angular.x.filter_signal(data.angular.x)
-        filtered_twist.angular.y = self.filters.angular.y.filter_signal(data.angular.y)
-        filtered_twist.angular.z = self.filters.angular.z.filter_signal(data.angular.z)
+        cmd_out.linear.x = self.filters.linear.x.filter_signal(data.linear.x)
+        cmd_out.linear.y = self.filters.linear.y.filter_signal(data.linear.y)
+        cmd_out.linear.z = self.filters.linear.z.filter_signal(data.linear.z)
+        cmd_out.angular.x = self.filters.angular.x.filter_signal(data.angular.x)
+        cmd_out.angular.y = self.filters.angular.y.filter_signal(data.angular.y)
+        cmd_out.angular.z = self.filters.angular.z.filter_signal(data.angular.z)
 
         # Saturate at max velocities and scale
-        sat_twist = self._saturate_twist(filtered_twist, self.config['vel_linear_max'], self.config['vel_angular_max'])
+        if self.config['vel_linear_max'] > 0:
+            cmd_out = self._saturate_twist(cmd_out, self.config['vel_linear_max'], self.config['vel_angular_max'])
 
         # Saturate at max accelerations and scale
 
         # Publish output twist
-        cmd_out = sat_twist
         self.pub_cmd_out.publish(cmd_out)
 
     def _saturate_twist(self, twist, linear_max, angular_max):

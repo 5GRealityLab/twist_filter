@@ -134,19 +134,20 @@ class TwistFilter:
                following any specified constraints.
 
         @param ratios - Unsorted array of input ratios
-        @returns ratios - Sorted array of ordered ratios (could also be empty)
+        @returns valid - Sorted array of valid ordered ratios (could be empty)
         '''
 
-        # Remove ratios that are greater than or equal to 1.0
+        # Select ratios that are less than or equal to 1.0
+        valid = []
         for r in ratios:
-            if r >= 1.0:
-                ratios.remove(r)
-
+            if r <= 1.0:
+                valid.append(r)
+        
         # Sort array from smallest to largest
-        if len(ratios) > 1:
-            ratios = ratios.sort()
+        if len(valid) > 1:
+            valid.sort()
 
-        return ratios
+        return valid
 
 
     def _saturate_vel(self, twist, l_max, a_max):
@@ -166,26 +167,19 @@ class TwistFilter:
 
         # Determine the order in which to scale the twist
         scale_order = self._get_scaling_order([l_ratio, a_ratio])
-        # if l_ratio < 1.0 and a_ratio < 1.0:
-        #     if l_ratio < a_ratio:
-        #         scale_order = [l_ratio, a_ratio]
-        #     else:
-        #         scale_order = [a_ratio, l_ratio]
-        # else:
-        #     if l_ratio < 1.0:
-        #         scale_order = [l_ratio]
-        #     elif a_ratio < 1.0:
-        #         scale_order = [a_ratio]
         
+        # Scale velocities
         for r in scale_order:
             sat_twist = self._scale_twist(sat_twist, r)
 
-            # Break if new ratios are both >= 1.0
-            linear_mag, angular_mag = self._get_twist_mag(sat_twist)
-            l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
+            # Break if new ratios are both >= 1.0 (if scale_order length is larger than 1)
+            if len(scale_order) > 1:
+                linear_mag, angular_mag = self._get_twist_mag(sat_twist)
+                l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
 
-            if l_ratio <= 1.0 and a_ratio <= 1.0:
-                break
+                # No need for more scaling since constraints are already met
+                if l_ratio <= 1.0 and a_ratio <= 1.0:
+                    break
 
         return sat_twist
 
@@ -211,16 +205,6 @@ class TwistFilter:
 
         # Determine the order in which to scale acceleration
         scale_order = self._get_scaling_order([l_ratio, a_ratio])
-        # if l_ratio < 1.0 and a_ratio < 1.0:
-        #     if l_ratio < a_ratio:
-        #         scale_order = [l_ratio, a_ratio]
-        #     else:
-        #         scale_order = [a_ratio, l_ratio]
-        # else:
-        #     if l_ratio < 1.0:
-        #         scale_order = [l_ratio]
-        #     elif a_ratio < 1.0:
-        #         scale_order = [a_ratio]
 
         # Scale accelerations
         for r in scale_order:
@@ -235,13 +219,14 @@ class TwistFilter:
             sat_twist.angular.y = (acc.angular.y * time_delta) + self.twist_prev.angular.y
             sat_twist.angular.z = (acc.angular.z * time_delta) + self.twist_prev.angular.z
 
-            # Get new scaled magnitude and ratios
-            linear_mag, angular_mag = self._get_twist_mag(acc)
-            l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
+            # Break if new ratios are both >= 1.0 (if scale_order length is larger than 1)
+            if len(scale_order) > 1:
+                linear_mag, angular_mag = self._get_twist_mag(acc)
+                l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
 
-            # Break if ratios are both <= 1.0
-            if l_ratio <= 1.0 and a_ratio <= 1.0:
-                break
+                # No need for more scaling since constraints are already met
+                if l_ratio <= 1.0 and a_ratio <= 1.0:
+                    break
 
         return sat_twist
 

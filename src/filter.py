@@ -88,6 +88,16 @@ class TwistFilter:
         print cmd_out
         print '\n'
 
+    def _get_twist_mag(self, v):
+        '''
+        @brief Returns linear and angular magnitudes of a twist
+        '''
+
+        lin = math.sqrt(v.linear.x**2 + v.linear.y**2 + v.linear.z**2)
+        ang = math.sqrt(v.angular.x**2 + v.angular.y**2 + v.angular.z**2)
+
+        return lin, ang
+
     def _saturate_vel(self, twist, linear_max, angular_max):
         '''
         @brief Saturate and scale input twist according to linear and angular
@@ -100,8 +110,7 @@ class TwistFilter:
         sat_twist = twist
 
         # Calculate linear and angular magnitudes and get their ratios
-        linear_mag = math.sqrt(sat_twist.linear.x**2 + sat_twist.linear.y**2 + sat_twist.linear.z**2)
-        angular_mag = math.sqrt(sat_twist.angular.x**2 + sat_twist.angular.y**2 + sat_twist.angular.z**2)
+        linear_mag, angular_mag = self._get_twist_mag(sat_twist)
         try:
             linear_ratio = linear_max / linear_mag
         except ZeroDivisionError:
@@ -129,8 +138,7 @@ class TwistFilter:
             sat_twist = self._scale_twist(sat_twist, r)
 
             # Break if new ratios are both >= 1.0
-            linear_mag = math.sqrt(sat_twist.linear.x**2 + sat_twist.linear.y**2 + sat_twist.linear.z**2)
-            angular_mag = math.sqrt(sat_twist.angular.x**2 + sat_twist.angular.y**2 + sat_twist.angular.z**2)
+            linear_mag, angular_mag = self._get_twist_mag(sat_twist)
             try:
                 linear_ratio = linear_max / linear_mag
             except ZeroDivisionError:
@@ -163,10 +171,7 @@ class TwistFilter:
         acc = self.get_acc(sat_twist, time_delta)
 
         # Calculate magnitudes and get their ratios
-        linear_mag = np.linalg.norm(np.array([acc.linear.x, acc.linear.y, acc.linear.z]))
-        # linear_mag = math.sqrt(acc.linear.x**2 + acc.linear.y**2 + acc.linear.z**2)
-        angular_mag = np.linalg.norm(np.array([acc.angular.x, acc.angular.y, acc.angular.z]))
-        # angular_mag = math.sqrt(acc.angular.x**2 + acc.angular.y**2 + acc.angular.z**2)
+        linear_mag, angular_mag = self._get_twist_mag(acc)
         try:
             linear_ratio = linear_max / linear_mag
         except ZeroDivisionError:
@@ -204,8 +209,7 @@ class TwistFilter:
             sat_twist.angular.z = (acc.angular.z * time_delta) + self.twist_prev.angular.z
 
             # Get new scaled magnitude and ratios
-            linear_mag = math.sqrt(acc.linear.x**2 + acc.linear.y**2 + acc.linear.z**2)
-            angular_mag = math.sqrt(acc.angular.x**2 + acc.angular.y**2 + acc.angular.z**2)
+            linear_mag, angular_mag = self._get_twist_mag(acc)
             try:
                 linear_ratio = linear_max / linear_mag
             except ZeroDivisionError:

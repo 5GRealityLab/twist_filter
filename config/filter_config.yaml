@@ -2,5 +2,5 @@ filter_type: 0
 samples: 2
 acc_linear_max: 1.0
 acc_angular_max: 2.0
-vel_linear_max: 0.5
-vel_angular_max: 0.7
+vel_linear_max: 0.2
+vel_angular_max: 0.5

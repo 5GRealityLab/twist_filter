@@ -91,6 +91,10 @@ class TwistFilter:
     def _get_twist_mag(self, v):
         '''
         @brief Returns linear and angular magnitudes of a twist
+
+        @param v - Input twist
+        @returns lin - Linear magnitude
+        @returns ang - Angular magnitude
         '''
 
         lin = math.sqrt(v.linear.x**2 + v.linear.y**2 + v.linear.z**2)
@@ -98,7 +102,33 @@ class TwistFilter:
 
         return lin, ang
 
-    def _saturate_vel(self, twist, linear_max, angular_max):
+    def _get_max_ratios(self, l_mag, a_mag, l_max, a_max):
+        '''
+        @brief Returns ratio of the vector magnitude to specified max velocity
+               and acceleration
+            
+        @param l_mag - Linear magnitude
+        @param a_mag - Angular magnitude
+        @param l_max - Linear maximum limit
+        @param a_max - Angular maximum limit
+        @returns l_r - Linear ratio
+        @returns a_r - Angular ratio
+        '''
+
+        try:
+            l_r = l_max / l_mag
+        except ZeroDivisionError:
+            l_r = 1.0
+        
+        try:
+            a_r = a_max / a_mag
+        except ZeroDivisionError:
+            a_r = 1.0
+
+        return l_r, a_r
+
+
+    def _saturate_vel(self, twist, l_max, a_max):
         '''
         @brief Saturate and scale input twist according to linear and angular
                velocity limits
@@ -110,51 +140,35 @@ class TwistFilter:
         sat_twist = twist
 
         # Calculate linear and angular magnitudes and get their ratios
-        linear_mag, angular_mag = self._get_twist_mag(sat_twist)
-        try:
-            linear_ratio = linear_max / linear_mag
-        except ZeroDivisionError:
-            linear_ratio = 1.0
-        
-        try:
-            angular_ratio = angular_max / angular_mag
-        except ZeroDivisionError:
-            angular_ratio = 1.0
+        l_mag, a_mag = self._get_twist_mag(sat_twist)
+        l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
 
         # Determine the order in which to scale the twist
         scale_order = []
-        if linear_ratio < 1.0 and angular_ratio < 1.0:
-            if linear_ratio < angular_ratio:
-                scale_order = [linear_ratio, angular_ratio]
+        if l_ratio < 1.0 and a_ratio < 1.0:
+            if l_ratio < a_ratio:
+                scale_order = [l_ratio, a_ratio]
             else:
-                scale_order = [angular_ratio, linear_ratio]
+                scale_order = [a_ratio, l_ratio]
         else:
-            if linear_ratio < 1.0:
-                scale_order = [linear_ratio]
-            elif angular_ratio < 1.0:
-                scale_order = [angular_ratio]
+            if l_ratio < 1.0:
+                scale_order = [l_ratio]
+            elif a_ratio < 1.0:
+                scale_order = [a_ratio]
         
         for r in scale_order:
             sat_twist = self._scale_twist(sat_twist, r)
 
             # Break if new ratios are both >= 1.0
             linear_mag, angular_mag = self._get_twist_mag(sat_twist)
-            try:
-                linear_ratio = linear_max / linear_mag
-            except ZeroDivisionError:
-                linear_ratio = 1.0
-            
-            try:
-                angular_ratio = angular_max / angular_mag
-            except ZeroDivisionError:
-                angular_ratio = 1.0
+            l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
 
-            if linear_ratio <= 1.0 and angular_ratio <= 1.0:
+            if l_ratio <= 1.0 and a_ratio <= 1.0:
                 break
 
         return sat_twist
 
-    def _saturate_acc(self, twist, linear_max, angular_max, time_delta):
+    def _saturate_acc(self, twist, l_max, a_max, time_delta):
         '''
         @brief Scales input twist so that it is constrained by the maximum
                linear and angular acceleration limits
@@ -171,29 +185,30 @@ class TwistFilter:
         acc = self.get_acc(sat_twist, time_delta)
 
         # Calculate magnitudes and get their ratios
-        linear_mag, angular_mag = self._get_twist_mag(acc)
-        try:
-            linear_ratio = linear_max / linear_mag
-        except ZeroDivisionError:
-            linear_ratio = 1.0
+        l_mag, a_mag = self._get_twist_mag(acc)
+        l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
+        # try:
+        #     linear_ratio = linear_max / linear_mag
+        # except ZeroDivisionError:
+        #     linear_ratio = 1.0
         
-        try:
-            angular_ratio = angular_max / angular_mag
-        except ZeroDivisionError:
-            angular_ratio = 1.0
+        # try:
+        #     angular_ratio = angular_max / angular_mag
+        # except ZeroDivisionError:
+        #     angular_ratio = 1.0
 
         # Determine the order in which to scale acceleration
         scale_order = []
-        if linear_ratio < 1.0 and angular_ratio < 1.0:
-            if linear_ratio < angular_ratio:
-                scale_order = [linear_ratio, angular_ratio]
+        if l_ratio < 1.0 and a_ratio < 1.0:
+            if l_ratio < a_ratio:
+                scale_order = [l_ratio, a_ratio]
             else:
-                scale_order = [angular_ratio, linear_ratio]
+                scale_order = [a_ratio, l_ratio]
         else:
-            if linear_ratio < 1.0:
-                scale_order = [linear_ratio]
-            elif angular_ratio < 1.0:
-                scale_order = [angular_ratio]
+            if l_ratio < 1.0:
+                scale_order = [l_ratio]
+            elif a_ratio < 1.0:
+                scale_order = [a_ratio]
 
         # Scale accelerations
         for r in scale_order:
@@ -210,18 +225,19 @@ class TwistFilter:
 
             # Get new scaled magnitude and ratios
             linear_mag, angular_mag = self._get_twist_mag(acc)
-            try:
-                linear_ratio = linear_max / linear_mag
-            except ZeroDivisionError:
-                linear_ratio = 1.0
+            l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
+            # try:
+            #     linear_ratio = linear_max / linear_mag
+            # except ZeroDivisionError:
+            #     linear_ratio = 1.0
             
-            try:
-                angular_ratio = angular_max / angular_mag
-            except ZeroDivisionError:
-                angular_ratio = 1.0
+            # try:
+            #     angular_ratio = angular_max / angular_mag
+            # except ZeroDivisionError:
+            #     angular_ratio = 1.0
 
             # Break if ratios are both <= 1.0
-            if linear_ratio <= 1.0 and angular_ratio <= 1.0:
+            if l_ratio <= 1.0 and a_ratio <= 1.0:
                 break
 
         return sat_twist

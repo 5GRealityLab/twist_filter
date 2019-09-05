@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 import rospy
 import math
-import numpy as np
 from geometry_msgs.msg import Twist
 
 from filter_types import FilterType, MAFilter

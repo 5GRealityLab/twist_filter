@@ -1,10 +1,13 @@
 <launch>
-    <group ns='twist_filter'>
-        <!-- Load config file -->
-        <rosparam command='load' file='$(find twist_filter)/config/filter_config.yaml' />
+    <arg name='input' default='filter_in' />
+    <arg name='output' default='filter_out' />
 
-        <!-- Launch filter node -->
-        <node name='twist_filter' pkg='twist_filter' type='filter.py' output='screen' />
-    </group>
-    
+    <!-- Load config file -->
+    <rosparam command='load' file='$(find twist_filter)/config/filter_config.yaml' />
+
+    <!-- Launch filter node -->
+    <node name='twist_filter' pkg='twist_filter' type='filter.py' output='screen'>
+        <remap from='filter_in' to='$(arg input)' />
+        <remap from='filter_out' to='$(arg output)' />
+    </node>
 </launch>

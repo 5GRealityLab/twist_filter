@@ -7,7 +7,7 @@ class FilterType(Enum):
 
 class MAFilter:
     def __init__(self, samples):
-        # Make sure filter is c=not too small
+        # Make sure filter is not too small
         if samples < 2:
             raise Exception('ERROR - Filter sample size must be larger than 1')
             return

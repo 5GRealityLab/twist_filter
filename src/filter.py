@@ -66,7 +66,7 @@ class TwistFilter:
         # Publish output twist
         self.pub_cmd_out.publish(cmd_out)
 
-        # Update prev twist
+        # Update previous values
         self.twist_prev = cmd_out
         self.time_prev = time_now
 
@@ -147,16 +147,16 @@ class TwistFilter:
         return valid
 
 
-    def _saturate_vel(self, twist, l_max, a_max):
+    def _saturate_vel(self, v, l_max, a_max):
         '''
         @brief Saturate and scale input twist according to linear and angular
                velocity limits
         
-        @param twist - Input twist
+        @param v - Input twist
         @returns sat_twist - Saturated output twist
         '''
 
-        sat_twist = twist
+        sat_twist = v
 
         # Calculate linear and angular magnitudes and get their ratios
         l_mag, a_mag = self._get_twist_mag(sat_twist)
@@ -180,18 +180,18 @@ class TwistFilter:
 
         return sat_twist
 
-    def _saturate_acc(self, twist, l_max, a_max, time_delta):
+    def _saturate_acc(self, v, l_max, a_max, time_delta):
         '''
         @brief Scales input twist so that it is constrained by the maximum
                linear and angular acceleration limits
         
-        @param twist - Input twist
+        @param v - Input twist
         @param linear_max - Linear acceleration max
         @param angular_max - Angular acceleration max
         @returns sat_twist - Saturated twist
         '''
 
-        sat_twist = twist
+        sat_twist = v
 
         # Get linear acceleration
         acc = self._get_acc(sat_twist, time_delta)
@@ -227,16 +227,16 @@ class TwistFilter:
 
         return sat_twist
 
-    def _scale_twist(self, twist, ratio):
+    def _scale_twist(self, v, ratio):
         '''
         @brief Scales the input twist by the scaling factor
 
-        @param twist - Input twist
+        @param v - Input twist
         @param ratio - Scaling factor
         @returns scaled_twist - Scaled twist
         '''
 
-        scaled_twist = twist
+        scaled_twist = v
         scaled_twist.linear.x *= ratio
         scaled_twist.linear.y *= ratio
         scaled_twist.linear.z *= ratio
@@ -246,26 +246,35 @@ class TwistFilter:
 
         return scaled_twist
 
-    def _get_acc(self, twist, time_delta):
+    def _get_acc(self, v, time_delta):
         '''
         @brief Returns acceleration of all twist components
+
+        @param v - Current twist
+        @param time_delta - Time step
+        @returns acc - Twist object that contains acceleration for each component
         '''
 
         acc = Twist()
 
         # Calculate acceleration for all twist components
-        acc.linear.x = self._get_slope(twist.linear.x, self.twist_prev.linear.x, time_delta)
-        acc.linear.y = self._get_slope(twist.linear.y, self.twist_prev.linear.y, time_delta)
-        acc.linear.z = self._get_slope(twist.linear.z, self.twist_prev.linear.z, time_delta)
-        acc.angular.x = self._get_slope(twist.angular.x, self.twist_prev.angular.x, time_delta)
-        acc.angular.y = self._get_slope(twist.angular.y, self.twist_prev.angular.y, time_delta)
-        acc.angular.z = self._get_slope(twist.angular.z, self.twist_prev.angular.z, time_delta)
+        acc.linear.x = self._get_slope(v.linear.x, self.twist_prev.linear.x, time_delta)
+        acc.linear.y = self._get_slope(v.linear.y, self.twist_prev.linear.y, time_delta)
+        acc.linear.z = self._get_slope(v.linear.z, self.twist_prev.linear.z, time_delta)
+        acc.angular.x = self._get_slope(v.angular.x, self.twist_prev.angular.x, time_delta)
+        acc.angular.y = self._get_slope(v.angular.y, self.twist_prev.angular.y, time_delta)
+        acc.angular.z = self._get_slope(v.angular.z, self.twist_prev.angular.z, time_delta)
 
         return acc
 
     def _get_slope(self, current, prev, step):
         '''
         @brief Returns the acceleration over a given time step
+
+        @param current - Current value
+        @param prev - Previous value
+        @param step - Time step
+        @returns a - Slope (acceleration)
         '''
 
         a = (current - prev) / step

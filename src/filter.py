@@ -18,6 +18,9 @@ class TwistFilterObj:
 
 class TwistFilter:
     def __init__(self):
+        # Load params from parameter server
+        self.config = rospy.get_param('filter_config')
+
         # Create filter sample arrays for each twist component
         try:
             self.filters = TwistFilterObj()
@@ -26,31 +29,24 @@ class TwistFilter:
             rospy.loginfo(e)
             return
 
-        # Load params from parameter server
-        self.acc_linear_max = rospy.get_param('acc_linear_max')
-        self.acc_angular_max = rospy.get_param('acc_angular_max')
-        self.vel_linear_max = rospy.get_param('vel_linear_max')
-        self.vel_angular_max = rospy.get_param('vel_angular_max')
-
         # Set up publishers/subscribers
-        self.sub_cmd_in = rospy.Subscriber('cmd_in', Twist, self.filter_twist)
-        self.pub_cmd_out = rospy.Publisher('cmd_out', Twist, queue_size=10)
+        self.sub_cmd_in = rospy.Subscriber('filter_in', Twist, self.filter_twist)
+        self.pub_cmd_out = rospy.Publisher('filter_out', Twist, queue_size=10)
 
         rospy.loginfo('Filters ready!')
 
     def set_filter_type(self):
-        # Get filter type and sample number
-        filter_type = rospy.get_param('filter_type')
-        samples = rospy.get_param('samples')
+        # Get filter sample number
+        s = self.config['samples']
 
         # Build desired filters
-        if filter_type == FilterType.MAF.value:
-            self.filters.linear.x = MAFilter(samples)
-            self.filters.linear.y = MAFilter(samples)
-            self.filters.linear.z = MAFilter(samples)
-            self.filters.angular.x = MAFilter(samples)
-            self.filters.angular.y = MAFilter(samples)
-            self.filters.angular.z = MAFilter(samples)
+        if self.config['filter_type'] == FilterType.MAF.value:
+            self.filters.linear.x = MAFilter(s)
+            self.filters.linear.y = MAFilter(s)
+            self.filters.linear.z = MAFilter(s)
+            self.filters.angular.x = MAFilter(s)
+            self.filters.angular.y = MAFilter(s)
+            self.filters.angular.z = MAFilter(s)
         else:
             raise Exception('ERROR - Uknown filter type: ' + str(filter_type))
 
@@ -66,13 +62,12 @@ class TwistFilter:
         filtered_twist.angular.z = self.filters.angular.z.filter_signal(data.angular.z)
 
         # Saturate at max velocities and scale
-        sat_twist = self._saturate_twist(filtered_twist, self.vel_linear_max, self.vel_angular_max)
+        sat_twist = self._saturate_twist(filtered_twist, self.config['vel_linear_max'], self.config['vel_angular_max'])
 
         # Saturate at max accelerations and scale
 
         # Publish output twist
-        cmd_out = filtered_twist
-        print cmd_out
+        cmd_out = sat_twist
         self.pub_cmd_out.publish(cmd_out)
 
     def _saturate_twist(self, twist, linear_max, angular_max):

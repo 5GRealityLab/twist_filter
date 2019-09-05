@@ -9,7 +9,7 @@ class MAFilter:
     def __init__(self, samples):
         # Make sure filter is c=not too small
         if samples < 2:
-            raise Exception('ERROR - Fitler sample size must be larger than 1')
+            raise Exception('ERROR - Filter sample size must be larger than 1')
             return
 
         # Construct filter sample array

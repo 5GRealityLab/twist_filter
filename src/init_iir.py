@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import rospy
 from component_filters import TwistFilterObject, IIRFilter
-from twist_filter import TwistFilter
+from filter_twist import TwistFilter
 
 def main():
     while not rospy.is_shutdown():

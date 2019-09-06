@@ -33,10 +33,11 @@ class FilterType(object):
         @param data - New data element
         '''
 
-        i = self.num_samples - 2
-        while i >= 0:
-            self.samples[i+1] = self.samples[i]
-            i -= 1
+        if len(self.samples) > 1:
+            i = self.num_samples - 2
+            while i >= 0:
+                self.samples[i+1] = self.samples[i]
+                i -= 1
 
         self.samples[0] = data
 
@@ -92,4 +93,61 @@ class FIRFilter(FilterType):
         result = 0
         for i in range(len(self.samples)):
             result += self.samples[i] * self.weights[i]
+        return result
+
+class IIRFilter(FilterType):
+    def __init__(self, in_samples, out_samples, in_weights, out_weights):
+        super(IIRFilter, self).__init__(in_samples)
+        self.num_out_samples = out_samples
+        self.out_samples = [0] * self.num_out_samples
+        self.in_weights = in_weights
+        self.out_weights = out_weights
+
+    def update_feedback(self, data):
+        '''
+        @brief Updates the array of output responses (feedback) with new data point
+
+        @param data - Input feedback
+        '''
+
+        if len(self.out_samples) > 1:
+            i = self.num_out_samples - 2
+            while i >= 0:
+                self.out_samples[i+1] = self.out_samples[i]
+                i -= 1
+
+        self.out_samples[0] = data
+
+    def get_result(self):
+        '''
+        @brief Computes filtered response and returns it
+
+        @returns - result
+        '''
+
+        result = 0
+        input_response = 0
+        for i in range(len(self.samples)):
+            input_response += self.samples[i] * self.in_weights[i]
+
+        feedback_response = 0
+        for i in range(len(self.out_samples)):
+            feedback_response += self.out_samples[i] * self.out_weights[i]
+
+        result = input_response - feedback_response
+        return result
+
+    def filter_signal(self, data):
+        '''
+        @brief Takes in new signal sample, updates sample array,
+               and returns the filtered response. It also updates
+               feedback sample array after calculating the response
+
+        @param data - New data element
+        @returns result
+        '''
+
+        self.update_samples(data)
+        result = self.get_result()
+        self.update_feedback(result)
         return result

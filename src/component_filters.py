@@ -149,5 +149,10 @@ class IIRFilter(FilterType):
 
         self.update_samples(data)
         result = self.get_result()
+
+        # If number is small enough, set it to 0
+        if abs(result) < 0.00001:
+            result = 0
+
         self.update_feedback(result)
         return result

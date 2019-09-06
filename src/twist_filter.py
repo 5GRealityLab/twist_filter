@@ -3,31 +3,16 @@ import rospy
 import math
 from geometry_msgs.msg import Twist
 
-from filter_types import FilterType, MAFilter
-
-class TwistFilterComponent:
-    def __init__(self):
-        self.x = None
-        self.y = None
-        self.z = None
-
-class TwistFilterObj:
-    def __init__(self):
-        self.linear = TwistFilterComponent()
-        self.angular = TwistFilterComponent()
-
 class TwistFilter:
-    def __init__(self):
+    def __init__(self, components):
         # Load params from parameter server
-        self.config = rospy.get_param('filter_config')
-
-        # Create filter sample arrays for each twist component
-        try:
-            self.filters = TwistFilterObj()
-            self._set_filter_type()
-        except Exception as e:
-            rospy.loginfo(e)
-            return
+        self.linear_vel_max = rospy.get_param('~linear_vel_max')
+        self.linear_acc_max = rospy.get_param('~linear_acc_max')
+        self.angular_vel_max = rospy.get_param('~angular_vel_max')
+        self.angular_acc_max = rospy.get_param('~angular_acc_max')
+        
+        # Set component filters
+        self.filters = components
 
         # Set prev values
         self.time_prev = rospy.Time.now()
@@ -55,12 +40,12 @@ class TwistFilter:
         time_delta = time_now.to_sec() - self.time_prev.to_sec()
 
         # Saturate at max accelerations and scale
-        if self.config['acc_linear_max'] > 0 or self.config['acc_angular_max'] > 0:
-            cmd_out = self._saturate_acc(cmd_out, self.config['acc_linear_max'], self.config['acc_angular_max'], time_delta)
+        if self.linear_acc_max > 0 or self.angular_acc_max > 0:
+            cmd_out = self._saturate_acc(cmd_out, self.linear_acc_max, self.angular_acc_max, time_delta)
 
         # Saturate at max velocities and scale
-        if self.config['vel_linear_max'] > 0 or self.config['vel_angular_max'] > 0:
-            cmd_out = self._saturate_vel(cmd_out, self.config['vel_linear_max'], self.config['vel_angular_max'])
+        if self.linear_vel_max > 0 or self.angular_vel_max > 0:
+            cmd_out = self._saturate_vel(cmd_out, self.linear_vel_max, self.angular_vel_max)
 
         # Publish output twist
         self.pub_cmd_out.publish(cmd_out)
@@ -68,21 +53,6 @@ class TwistFilter:
         # Update previous values
         self.twist_prev = cmd_out
         self.time_prev = time_now
-
-    def _set_filter_type(self):
-        # Get filter sample number
-        s = self.config['samples']
-
-        # Build desired filters
-        if self.config['filter_type'] == FilterType.MAF.value:
-            self.filters.linear.x = MAFilter(s)
-            self.filters.linear.y = MAFilter(s)
-            self.filters.linear.z = MAFilter(s)
-            self.filters.angular.x = MAFilter(s)
-            self.filters.angular.y = MAFilter(s)
-            self.filters.angular.z = MAFilter(s)
-        else:
-            raise Exception('ERROR - Uknown filter type: ' + str(filter_type))
 
     def _get_twist_mag(self, v):
         '''
@@ -278,18 +248,3 @@ class TwistFilter:
 
         a = (current - prev) / step
         return a
-
-        
-def main():
-    while not rospy.is_shutdown():
-        try:
-            rospy.init_node('twist_filter')
-            f = TwistFilter()
-            rospy.spin()
-        except rospy.ROSInterruptException as e:
-            rospy.loginfo(e)
-
-    rospy.loginfo('Shutting down...')
-
-if __name__ == '__main__':
-    main()

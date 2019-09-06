@@ -1,17 +1,19 @@
 #!/usr/bin/env python
 from enum import Enum
 
-class FilterType(Enum):
-    MAF = 0
-    FIR = 1
+class TwistFilterComponent:
+    def __init__(self):
+        self.x = None
+        self.y = None
+        self.z = None
+
+class TwistFilterObject:
+    def __init__(self):
+        self.linear = TwistFilterComponent()
+        self.angular = TwistFilterComponent()
 
 class MAFilter:
     def __init__(self, samples):
-        # Make sure filter is not too small
-        if samples < 2:
-            raise Exception('ERROR - Filter sample size must be larger than 1')
-            return
-
         # Construct filter sample array
         self.num_samples = samples
         self.samples = [0]*self.num_samples

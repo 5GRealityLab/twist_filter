@@ -3,7 +3,7 @@ import rospy
 import math
 from geometry_msgs.msg import Twist
 
-class TwistFilter:
+class TwistFilter(object):
     def __init__(self, components):
         # Load params from parameter server
         self.linear_vel_max = rospy.get_param('~linear_vel_max')

@@ -1,0 +1,17 @@
+<launch>
+    <arg name='input' default='filter_in' />
+    <arg name='output' default='filter_out' />
+    <arg name='config' default='filter_config.yaml' />
+
+    <!-- Launch filter and required params -->
+    <node name='fir_filter' pkg='twist_filter' type='fir_init.py' output='screen'>
+        <remap from='filter_in' to='$(arg input)' />
+        <remap from='filter_out' to='$(arg output)' />
+
+        <rosparam command='load'>
+            sample_size: 3
+            weights: [1, 2, 3]
+        </rosparam>
+        <rosparam command='load' file='$(find twist_filter)/config/$(arg config)' />
+    </node>
+</launch>

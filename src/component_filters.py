@@ -1,24 +1,28 @@
 #!/usr/bin/env python
 from enum import Enum
 
-class TwistFilterComponent:
+class TwistFilterComponent(object):
     def __init__(self):
         self.x = None
         self.y = None
         self.z = None
 
-class TwistFilterObject:
+class TwistFilterObject(object):
     def __init__(self):
         self.linear = TwistFilterComponent()
         self.angular = TwistFilterComponent()
 
-class MAFilter:
+class FilterType(object):
     def __init__(self, samples):
         # Construct filter sample array
         self.num_samples = samples
         self.samples = [0]*self.num_samples
 
     def __str__(self):
+        '''
+        @brief Returns sample array in String form
+        '''
+
         return str(self.samples)
 
     def update_samples(self, data):
@@ -38,15 +42,11 @@ class MAFilter:
 
     def get_result(self):
         '''
-        @brief Computes filtered response and returns it
-
-        @returns - result
+        @brief Returns the filter response. This is a prototype function
+               that should be defined in each individual sub-class
         '''
 
-        result = 0
-        for s in self.samples:
-            result += s
-        return result / self.num_samples
+        return
 
     def filter_signal(self, data):
         '''
@@ -59,4 +59,37 @@ class MAFilter:
 
         self.update_samples(data)
         result = self.get_result()
+        return result
+
+class MAFilter(FilterType):
+    def __init__(self, samples):
+        super(MAFilter, self).__init__(samples)
+
+    def get_result(self):
+        '''
+        @brief Computes filtered response and returns it
+
+        @returns - result
+        '''
+
+        result = 0
+        for s in self.samples:
+            result += s
+        return result / self.num_samples
+
+class FIRFilter(FilterType):
+    def __init__(self, samples, weights):
+        super(FIRFilter, self).__init__(samples)
+        self.weights = weights
+
+    def get_result(self):
+        '''
+        @brief Computes filtered response and returns it
+
+        @returns - result
+        '''
+
+        result = 0
+        for i in range(len(self.samples)):
+            result += self.samples[i] * self.weights[i]
         return result

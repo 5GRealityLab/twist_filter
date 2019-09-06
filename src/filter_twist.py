@@ -2,6 +2,7 @@
 import rospy
 import math
 from geometry_msgs.msg import Twist
+from twist_filter.msg import FilterConfig
 
 class TwistFilter(object):
     def __init__(self, components):
@@ -19,6 +20,7 @@ class TwistFilter(object):
         self.twist_prev = Twist()
 
         # Set up publishers/subscribers
+        self.sub_config = rospy.Subscriber('filter_config', FilterConfig, self.update_config)
         self.sub_cmd_in = rospy.Subscriber('filter_in', Twist, self.filter_twist)
         self.pub_cmd_out = rospy.Publisher('filter_out', Twist, queue_size=10)
 
@@ -248,3 +250,22 @@ class TwistFilter(object):
 
         a = (current - prev) / step
         return a
+
+    def update_config(self, data):
+        '''
+        @brief Updates linear and angular max values
+
+        @param data - Update message of type FilterConfig
+        '''
+
+        # Update only positive nonzero values
+        if data.linear_vel_max > 0:
+            self.linear_vel_max = data.linear_vel_max
+        if data.linear_acc_max > 0:
+            self.linear_acc_max = data.linear_acc_max
+        if data.angular_vel_max > 0:
+            self.angular_vel_max = data.angular_vel_max
+        if data.angular_acc_max > 0:
+            self.angular_acc_max = data.angular_acc_max
+
+        rospy.loginfo('Config values updated!')

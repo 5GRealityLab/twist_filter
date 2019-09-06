@@ -26,6 +26,25 @@ class TwistFilter(object):
 
         rospy.loginfo('Filters ready!')
 
+    def update_config(self, data):
+        '''
+        @brief Updates linear and angular max values
+
+        @param data - Update message of type FilterConfig
+        '''
+
+        # Update only positive nonzero values
+        if data.linear_vel_max > 0:
+            self.linear_vel_max = data.linear_vel_max
+        if data.linear_acc_max > 0:
+            self.linear_acc_max = data.linear_acc_max
+        if data.angular_vel_max > 0:
+            self.angular_vel_max = data.angular_vel_max
+        if data.angular_acc_max > 0:
+            self.angular_acc_max = data.angular_acc_max
+
+        rospy.loginfo('Config values updated!')
+
     def filter_twist(self, data):
         cmd_out = Twist()
 
@@ -250,22 +269,3 @@ class TwistFilter(object):
 
         a = (current - prev) / step
         return a
-
-    def update_config(self, data):
-        '''
-        @brief Updates linear and angular max values
-
-        @param data - Update message of type FilterConfig
-        '''
-
-        # Update only positive nonzero values
-        if data.linear_vel_max > 0:
-            self.linear_vel_max = data.linear_vel_max
-        if data.linear_acc_max > 0:
-            self.linear_acc_max = data.linear_acc_max
-        if data.angular_vel_max > 0:
-            self.angular_vel_max = data.angular_vel_max
-        if data.angular_acc_max > 0:
-            self.angular_acc_max = data.angular_acc_max
-
-        rospy.loginfo('Config values updated!')

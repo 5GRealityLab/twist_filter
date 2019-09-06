@@ -10,7 +10,7 @@
 
         <rosparam command='load'>
             sample_size: 3
-            weights: [1, 2, 3]
+            weights: [0.6, 0.3, 0.1]
         </rosparam>
         <rosparam command='load' file='$(find twist_filter)/config/$(arg config)' />
     </node>

@@ -4,7 +4,7 @@
     <arg name='config' default='filter_config.yaml' />
 
     <!-- Launch filter and required params -->
-    <node name='fir_filter' pkg='twist_filter' type='fir_init.py' output='screen'>
+    <node name='fir_filter' pkg='twist_filter' type='init_fir.py' output='screen'>
         <remap from='filter_in' to='$(arg input)' />
         <remap from='filter_out' to='$(arg output)' />
 

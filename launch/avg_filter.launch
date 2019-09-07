@@ -9,7 +9,7 @@
         <remap from='filter_out' to='$(arg output)' />
 
         <rosparam command='load'>
-            sample_size: 3
+            sample_size: 10
         </rosparam>
         <rosparam command='load' file='$(find twist_filter)/config/$(arg config)' />
     </node>

@@ -23,6 +23,7 @@ class TwistFilter(object):
         self.sub_config = rospy.Subscriber('filter_config', FilterConfig, self.update_config)
         self.sub_cmd_in = rospy.Subscriber('filter_in', Twist, self.filter_twist)
         self.pub_cmd_out = rospy.Publisher('filter_out', Twist, queue_size=10)
+        self.pub_cmd_smoothed = rospy.Publisher('filter_smooth', Twist, queue_size=10)
 
         rospy.loginfo('Filters ready!')
 
@@ -55,6 +56,9 @@ class TwistFilter(object):
         cmd_out.angular.x = self.filters.angular.x.filter_signal(data.angular.x)
         cmd_out.angular.y = self.filters.angular.y.filter_signal(data.angular.y)
         cmd_out.angular.z = self.filters.angular.z.filter_signal(data.angular.z)
+
+        # Publish smoothed response on separate topic
+        self.pub_cmd_smoothed.publish(cmd_out)
 
         # Get time step
         time_now = rospy.Time.now()

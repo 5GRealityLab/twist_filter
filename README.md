@@ -2,6 +2,8 @@
 
 This package is designed to work with the ROS framework to filter twist messages via ROS topics. There are two layers of filtering: individual signal filtering and over atwist filtering. The user can dynamically adjust the overall twist filter parameters like maximum acceleration and maximum velocity for both the linear and angular components of the twist. There are three kinds of filters available: a moving average filter, a more generic FIR filter, and an IIR filter.
 
+This package is inspired by a few other twist filters that already exist, but they do not offer much as functionality or are specifically designed for a certain application. This twist filter aims to be more generic and versatile while being maintained as a standalone package. Two popular packages, [`cob_base_velocity_smoother`](https://github.com/ipa320/cob_control/tree/kinetic_dev/cob_base_velocity_smoother) and [`yocs_velocity_smoother`](https://github.com/yujinrobot/yujin_ocs/tree/devel/yocs_velocity_smoother), only look at the linear x, y, and angular z components. They also do not offer component-level filtering or different filter configurations.
+
 ## Build Instructions
 
 *NOTE: This package has only been tested on Ubuntu 18.04 running ROS Melodic*

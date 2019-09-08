@@ -50,7 +50,9 @@ $ rostopic pub /filter_config twist_filter/FilterConfig "linear_vel_max: 0.7
 
 ## How it Works
 
-As mentioned above, there are two layers of filtering involved. The initial filtering happens at the component level of each twist. The linear and angular x, y, and z components are all filtered with either the MA, FIR, or IIR component filters. For every incoming twist, the signal is broken down into its components, filtered, and then reconstructed to make a smoothed signal. 
+As mentioned above, there are two layers of filtering involved. The initial filtering happens at the component level of each twist. The linear and angular x, y, and z components are all filtered with either the MA, FIR, or IIR component filters. For every incoming twist, the signal is broken down into its components, filtered, and then reconstructed to make a smoothed signal.
+
+![Filter flowchart](img/filter_flowchart.png)
 
 The smoothed signal is then passed to the higher level filter which looks at the twist as a whole rather than its individual components. The linear and angular magnitudes of both velocity and acceleration are calculated and then compared to the maximum values specified by the user (either from the motion config profile or from reconfigurations during runtime via the configuration topic). If any of the magnitudes cross the specified threshold, the entire twist is scaled accordingly so that the output twist is entirely constrained by the motion config profile. All components are scaled the same amount to preserve the motion of the original twist. This level of filtering can also be skipped if the maximum limits are set to 0.
 

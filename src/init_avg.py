@@ -8,18 +8,18 @@ def main():
         rospy.init_node('avg_filter')
 
         # Get size for sample array and check it is a valid size
-        samp_size = rospy.get_param('~sample_size')
-        if samp_size < 2:
+        num_samples = rospy.get_param('~num_samples')
+        if num_samples < 2:
             raise Exception('ERROR - Filter sample size must be larger than 1')
         
         # Create filters for each component of the incoming twist signal
         components = TwistFilterObject()
-        components.linear.x = MAFilter(samp_size)
-        components.linear.y = MAFilter(samp_size)
-        components.linear.z = MAFilter(samp_size)
-        components.angular.x = MAFilter(samp_size)
-        components.angular.y = MAFilter(samp_size)
-        components.angular.z = MAFilter(samp_size)
+        components.linear.x = MAFilter()
+        components.linear.y = MAFilter()
+        components.linear.z = MAFilter()
+        components.angular.x = MAFilter()
+        components.angular.y = MAFilter()
+        components.angular.z = MAFilter()
 
         # Initialize the twist filter
         twist_filter = TwistFilter(components)

@@ -6,28 +6,38 @@ from twist_filter.msg import FilterConfig
 
 class TwistFilter(object):
     def __init__(self, components):
-        # Load params from parameter server
-        self.linear_vel_max = rospy.get_param('~linear_vel_max')
-        self.linear_acc_max = rospy.get_param('~linear_acc_max')
-        self.angular_vel_max = rospy.get_param('~angular_vel_max')
-        self.angular_acc_max = rospy.get_param('~angular_acc_max')
-        
         # Set component filters
         self.filters = components
+
+        # Initialize update flag
+        self.update_flag = False
+        self.update_data = FilterConfig()
 
         # Set prev values
         self.time_prev = rospy.Time.now()
         self.twist_prev = Twist()
 
         # Set up publishers/subscribers
-        self.sub_config = rospy.Subscriber('filter_config', FilterConfig, self.update_config)
+        self.sub_config = rospy.Subscriber('filter_config', FilterConfig, self.set_update)
         self.sub_cmd_in = rospy.Subscriber('filter_in', Twist, self.filter_twist)
         self.pub_cmd_out = rospy.Publisher('filter_out', Twist, queue_size=10)
         self.pub_cmd_smoothed = rospy.Publisher('filter_smooth', Twist, queue_size=10)
 
         rospy.loginfo('Filters ready!')
 
-    def update_config(self, data):
+    def set_update(self, data):
+        '''
+        @brief Saves new config data and sets the update_flag to True so the
+               config updates can be applied at a safe time.
+        
+        @param data - Configuration data
+        '''
+
+        self.update_flag = True
+        self.update_data = data
+        rospy.loginfo('Update requested.')
+
+    def update_config(self):
         '''
         @brief Updates linear and angular max values
 
@@ -35,18 +45,35 @@ class TwistFilter(object):
         '''
 
         # Update only positive nonzero values
-        if data.linear_vel_max > 0:
-            self.linear_vel_max = data.linear_vel_max
-        if data.linear_acc_max > 0:
-            self.linear_acc_max = data.linear_acc_max
-        if data.angular_vel_max > 0:
-            self.angular_vel_max = data.angular_vel_max
-        if data.angular_acc_max > 0:
-            self.angular_acc_max = data.angular_acc_max
+        if self.update_data.linear_vel_max > 0:
+            # self.linear_vel_max = data.linear_vel_max
+            rospy.set_param('~linear_vel_max', self.update_data.linear_vel_max)
+        if self.update_data.linear_acc_max > 0:
+            # self.linear_acc_max = data.linear_acc_max
+            rospy.set_param('~linear_acc_max', self.update_data.linear_acc_max)
+        if self.update_data.angular_vel_max > 0:
+            # self.angular_vel_max = data.angular_vel_max
+            rospy.set_param('~angular_vel_max', self.update_data.angular_vel_max)
+        if self.update_data.angular_acc_max > 0:
+            # self.angular_acc_max = data.angular_acc_max
+            rospy.set_param('~angular_acc_max', self.update_data.angular_acc_max)
+
+        # Reset component filters
+        self.filters.linear.x.reset_filter(self.update_data)
+        self.filters.linear.y.reset_filter(self.update_data)
+        self.filters.linear.z.reset_filter(self.update_data)
+        self.filters.angular.x.reset_filter(self.update_data)
+        self.filters.angular.y.reset_filter(self.update_data)
+        self.filters.angular.z.reset_filter(self.update_data)
 
         rospy.loginfo('Config values updated!')
 
     def filter_twist(self, data):
+        # Check if config needs to be updated
+        if self.update_flag:
+            self.update_config()
+            self.update_flag = False
+
         cmd_out = Twist()
 
         # Get filtered response
@@ -58,19 +85,25 @@ class TwistFilter(object):
         cmd_out.angular.z = self.filters.angular.z.filter_signal(data.angular.z)
 
         # Publish smoothed response on separate topic
-        self.pub_cmd_smoothed.publish(cmd_out)
+        # self.pub_cmd_smoothed.publish(cmd_out)
+
+        # Load params from parameter server
+        linear_vel_max = rospy.get_param('~linear_vel_max')
+        linear_acc_max = rospy.get_param('~linear_acc_max')
+        angular_vel_max = rospy.get_param('~angular_vel_max')
+        angular_acc_max = rospy.get_param('~angular_acc_max')
 
         # Get time step
         time_now = rospy.Time.now()
         time_delta = time_now.to_sec() - self.time_prev.to_sec()
 
         # Saturate at max accelerations and scale
-        if self.linear_acc_max > 0 or self.angular_acc_max > 0:
-            cmd_out = self._saturate_acc(cmd_out, self.linear_acc_max, self.angular_acc_max, time_delta)
+        if linear_acc_max > 0 or angular_acc_max > 0:
+            cmd_out = self._saturate_acc(cmd_out, linear_acc_max, angular_acc_max, time_delta)
 
         # Saturate at max velocities and scale
-        if self.linear_vel_max > 0 or self.angular_vel_max > 0:
-            cmd_out = self._saturate_vel(cmd_out, self.linear_vel_max, self.angular_vel_max)
+        if linear_vel_max > 0 or angular_vel_max > 0:
+            cmd_out = self._saturate_vel(cmd_out, linear_vel_max, angular_vel_max)
 
         # Publish output twist
         self.pub_cmd_out.publish(cmd_out)

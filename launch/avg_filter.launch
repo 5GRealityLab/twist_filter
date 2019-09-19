@@ -1,16 +1,23 @@
 <launch>
     <arg name='input' default='filter_in' />
     <arg name='output' default='filter_out' />
-    <arg name='config' default='filter_config.yaml' />
+    
+    <arg name='linear_vel_max' default='0.0' />
+    <arg name='angular_vel_max' default='0.0' />
+    <arg name='linear_acc_max' default='0.0' />
+    <arg name='angular_acc_max' default='0.0' />
 
     <!-- Launch filter and required params -->
     <node name='avg_filter' pkg='twist_filter' type='init_avg.py' output='screen'>
         <remap from='filter_in' to='$(arg input)' />
         <remap from='filter_out' to='$(arg output)' />
 
+        <param name='linear_vel_max' value='$(arg linear_vel_max)' />
+        <param name='angular_vel_max' value='$(arg angular_vel_max)' />
+        <param name='linear_acc_max' value='$(arg linear_acc_max)' />
+        <param name='angular_acc_max' value='$(arg angular_acc_max)' />
         <rosparam command='load'>
-            sample_size: 10
+            num_samples: 10
         </rosparam>
-        <rosparam command='load' file='$(find twist_filter)/config/$(arg config)' />
     </node>
 </launch>

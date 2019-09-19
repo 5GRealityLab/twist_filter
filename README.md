@@ -44,18 +44,18 @@ $ roslaunch twist_filter avg_filter.launch input:=cmd_in output:=cmd_out
 
 The entire filter can be dynamically reconfigured using the FilterConfig message:
 
-    ```
-    float64 linear_vel_max      # Max linear velocity
-    float64 linear_acc_max      # Max linear acceleration
-    float64 angular_vel_max     # Max angular velocity
-    float64 angular_acc_max     # Max angular acceleration
+```
+float64 linear_vel_max      # Max linear velocity
+float64 linear_acc_max      # Max linear acceleration
+float64 angular_vel_max     # Max angular velocity
+float64 angular_acc_max     # Max angular acceleration
 
-    int32 num_samples           # Sample size
-    float64[] weights           # Array of weights (optional)
+int32 num_samples           # Sample size
+float64[] weights           # Array of weights (optional)
 
-    int32 num_out_samples       # Feedback sample size for IIR filter
-    float64[] out_weights       # Feedback weights for IIR filter
-    ```
+int32 num_out_samples       # Feedback sample size for IIR filter
+float64[] out_weights       # Feedback weights for IIR filter
+```
 
 You can update the motion profile values in real time by publishing to the `/filter_config` topic:
 
@@ -70,7 +70,7 @@ $ rostopic pub /filter_config twist_filter/FilterConfig "linear_vel_max: 0.7
 > out_weights: []"
 ```
 
-*NOTE: Any sero or empty values will be ignored when updating. Depending on the parameter, however, leaving a value empty or zero may result in the filter failing to update.*
+*NOTE: Any zero or empty values will be ignored when updating. Depending on the parameter, however, leaving a value empty or zero may result in the filter failing to update.*
 
 ## How it Works
 

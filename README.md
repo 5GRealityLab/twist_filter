@@ -23,21 +23,39 @@ $ roslaunch twist_filter fir_filter.launch      // FIR filter
 $ roslaunch twist_filter iir_filter.launch      // IIR filter
 ```
 
+**Launch File Arguments**
+
+|Argument|Description|Type|Default Value|
+|-|-|-|-|
+|input|Filter input. Topic is of type Twist|String|'filter_in'|
+|output|Filter output. Topic is of type Twist|String|'filter_out'|
+|linear_vel_max|Linear velocity limit|Float|0.0|
+|angular_vel_max|Angular velocity limit|Float|0.0|
+|linear_acc_max|Linear acceleration limit|Float|0.0|
+|angular_acc_max|Angular acceleration limit|Float|0.0|
+
 You can remap the input and output filter topics as well:
 
 ``` bash
 $ roslaunch twist_filter avg_filter.launch input:=cmd_in output:=cmd_out
 ```
 
-You can also specify which motion configuration profile you would like to use:
-
-``` bash
-$ roslaunch twist_filter fir_filter.launch config:=fir_config.yaml
-```
-
-*NOTE: Motion config profiles must be `.yaml` files that are saved in the `/config` directory of the package.*
-
 ### Reconfiguration
+
+The entire filter can be dynamically reconfigured using the FilterConfig message:
+
+    ```
+    float64 linear_vel_max      # Max linear velocity
+    float64 linear_acc_max      # Max linear acceleration
+    float64 angular_vel_max     # Max angular velocity
+    float64 angular_acc_max     # Max angular acceleration
+
+    int32 num_samples           # Sample size
+    float64[] weights           # Array of weights (optional)
+
+    int32 num_out_samples       # Feedback sample size for IIR filter
+    float64[] out_weights       # Feedback weights for IIR filter
+    ```
 
 You can update the motion profile values in real time by publishing to the `/filter_config` topic:
 
@@ -45,8 +63,14 @@ You can update the motion profile values in real time by publishing to the `/fil
 $ rostopic pub /filter_config twist_filter/FilterConfig "linear_vel_max: 0.7
 > linear_acc_max: 1.0
 > angular_vel_max: 0.7
-> angular_acc_max: 1.0"
+> angular_acc_max: 1.0
+> num_samples: 5
+> weights: [1.0, 2.0, 3.0, 4.0, 5.0]
+> num_out_samples: 0
+> out_weights: []"
 ```
+
+*NOTE: Any sero or empty values will be ignored when updating. Depending on the parameter, however, leaving a value empty or zero may result in the filter failing to update.*
 
 ## How it Works
 

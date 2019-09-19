@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 from enum import Enum
+import rospy
 
 class TwistFilterComponent(object):
     def __init__(self):
@@ -13,9 +14,9 @@ class TwistFilterObject(object):
         self.angular = TwistFilterComponent()
 
 class FilterType(object):
-    def __init__(self, samples):
+    def __init__(self):
         # Construct filter sample array
-        self.num_samples = samples
+        self.num_samples = rospy.get_param('~num_samples')
         self.samples = [0]*self.num_samples
 
     def __str__(self):
@@ -62,9 +63,30 @@ class FilterType(object):
         result = self.get_result()
         return result
 
+    def reset_filter(self, data):
+        '''
+        @brief Resets filter according to new parameters
+
+        @param data - New configuration
+        '''
+
+        if data.num_samples > 0:
+            new_samples = [0] * data.num_samples
+            if data.num_samples > self.num_samples:
+                for s in range(self.num_samples):
+                    new_samples[s] = self.samples[s]
+            elif data.num_samples < self.num_samples:
+                for s in range(data.num_samples):
+                    new_samples[s] = self.samples[s]
+
+            self.num_samples = data.num_samples
+            self.samples = new_samples
+
+            rospy.set_param('~num_samples', self.num_samples)
+
 class MAFilter(FilterType):
-    def __init__(self, samples):
-        super(MAFilter, self).__init__(samples)
+    def __init__(self):
+        super(MAFilter, self).__init__()
 
     def get_result(self):
         '''
@@ -79,9 +101,9 @@ class MAFilter(FilterType):
         return result / self.num_samples
 
 class FIRFilter(FilterType):
-    def __init__(self, samples, weights):
-        super(FIRFilter, self).__init__(samples)
-        self.weights = weights
+    def __init__(self):
+        super(FIRFilter, self).__init__()
+        self.weights = rospy.get_param('~weights')
 
     def get_result(self):
         '''
@@ -95,13 +117,42 @@ class FIRFilter(FilterType):
             result += self.samples[i] * self.weights[i]
         return result
 
+    def reset_filter(self, data):
+        '''
+        @brief Resets filter according to new parameters
+
+        @param data - New configuration
+        '''
+
+        if data.num_samples > 0:
+            # Make sure weights match the sample size
+            if data.num_samples != len(data.weights):
+                rospy.loginfo('Number of weights does not match sample number. Cannot update filter!')
+                return
+
+            # Update samples and weights    
+            new_samples = [0] * data.num_samples
+            if data.num_samples > self.num_samples:
+                for s in range(self.num_samples):
+                    new_samples[s] = self.samples[s]
+            elif data.num_samples < self.num_samples:
+                for s in range(data.num_samples):
+                    new_samples[s] = self.samples[s]
+
+            self.num_samples = data.num_samples
+            self.samples = new_samples
+            self.weights = data.weights
+
+            rospy.set_param('~num_samples', self.num_samples)
+            rospy.set_param('~weights', self.weights)
+
 class IIRFilter(FilterType):
-    def __init__(self, in_samples, out_samples, in_weights, out_weights):
-        super(IIRFilter, self).__init__(in_samples)
-        self.num_out_samples = out_samples
+    def __init__(self):
+        super(IIRFilter, self).__init__()
+        self.num_out_samples = rospy.get_param('~num_out_samples')
         self.out_samples = [0] * self.num_out_samples
-        self.in_weights = in_weights
-        self.out_weights = out_weights
+        self.weights = rospy.get_param('~weights')
+        self.out_weights = rospy.get_param('~out_weights')
 
     def update_feedback(self, data):
         '''
@@ -128,7 +179,7 @@ class IIRFilter(FilterType):
         result = 0
         input_response = 0
         for i in range(len(self.samples)):
-            input_response += self.samples[i] * self.in_weights[i]
+            input_response += self.samples[i] * self.weights[i]
 
         feedback_response = 0
         for i in range(len(self.out_samples)):
@@ -156,3 +207,48 @@ class IIRFilter(FilterType):
 
         self.update_feedback(result)
         return result
+
+    def reset_filter(self, data):
+        '''
+        @brief Resets filter according to new parameters
+
+        @param data - New configuration
+        '''
+
+        # Make sure weights match the sample size
+        if data.num_samples != len(data.weights) or data.num_out_samples != len(data.out_weights):
+            rospy.loginfo('Number of weights does not match sample number. Cannot update filter!')
+            return
+
+        # Update samples and weights
+        if data.num_samples > 0: 
+            new_samples = [0] * data.num_samples
+            if data.num_samples > self.num_samples:
+                for s in range(self.num_samples):
+                    new_samples[s] = self.samples[s]
+            elif data.num_samples < self.num_samples:
+                for s in range(data.num_samples):
+                    new_samples[s] = self.samples[s]
+
+            self.num_samples = data.num_samples
+            self.samples = new_samples
+            self.weights = data.weights
+
+            rospy.set_param('~num_samples', self.num_samples)
+            rospy.set_param('~weights', self.weights)
+
+        if data.num_out_samples > 0:
+            new_samples = [0] * data.num_out_samples
+            if data.num_out_samples > self.num_out_samples:
+                for s in range(self.num_out_samples):
+                    new_samples[s] = self.out_samples[s]
+            elif data.num_out_samples < self.num_out_samples:
+                for s in range(data.num_out_samples):
+                    new_samples[s] = self.out_samples[s]
+
+            self.num_out_samples = data.num_out_samples
+            self.out_samples = new_samples
+            self.out_weights = data.out_weights
+
+            rospy.set_param('~num_out_samples', self.num_out_samples)
+            rospy.set_param('~out_weights', self.out_weights)

@@ -21,7 +21,7 @@ class TwistFilter(object):
         self.sub_config = rospy.Subscriber('filter_config', FilterConfig, self.set_update)
         self.sub_cmd_in = rospy.Subscriber('filter_in', Twist, self.filter_twist)
         self.pub_cmd_out = rospy.Publisher('filter_out', Twist, queue_size=10)
-        self.pub_cmd_smoothed = rospy.Publisher('filter_smooth', Twist, queue_size=10)
+        # self.pub_cmd_smoothed = rospy.Publisher('filter_smooth', Twist, queue_size=10)
 
         rospy.loginfo('Filters ready!')
 

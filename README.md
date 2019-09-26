@@ -16,11 +16,11 @@ This package is inspired by a few other twist filters that already exist, but th
 Run the filters with their respective launch files:
 
 ``` bash
-$ roslaunch twist_filter avg_filter.launch      // Moving average filter
+$ roslaunch twist_filter avg_filter.launch      # Moving average filter
 
-$ roslaunch twist_filter fir_filter.launch      // FIR filter
+$ roslaunch twist_filter fir_filter.launch      # FIR filter
 
-$ roslaunch twist_filter iir_filter.launch      // IIR filter
+$ roslaunch twist_filter iir_filter.launch      # IIR filter
 ```
 
 **Launch File Arguments**
@@ -51,7 +51,7 @@ float64 angular_vel_max     # Max angular velocity
 float64 angular_acc_max     # Max angular acceleration
 
 int32 num_samples           # Sample size
-float64[] weights           # Array of weights (optional)
+float64[] weights           # Array of weights for FIR and IIR filters
 
 int32 num_out_samples       # Feedback sample size for IIR filter
 float64[] out_weights       # Feedback weights for IIR filter

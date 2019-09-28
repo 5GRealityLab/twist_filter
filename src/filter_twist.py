@@ -97,6 +97,10 @@ class TwistFilter(object):
         time_now = rospy.Time.now()
         time_delta = time_now.to_sec() - self.time_prev.to_sec()
 
+        # Exit if time step is zero
+        if time_delta < 0.0000001:
+            return
+
         # Saturate at max accelerations and scale
         if linear_acc_max > 0 or angular_acc_max > 0:
             cmd_out = self._saturate_acc(cmd_out, linear_acc_max, angular_acc_max, time_delta)

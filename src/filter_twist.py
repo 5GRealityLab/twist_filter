@@ -23,6 +23,12 @@ class TwistFilter(object):
         self.pub_cmd_out = rospy.Publisher('filter_out', Twist, queue_size=10)
         # self.pub_cmd_smoothed = rospy.Publisher('filter_smooth', Twist, queue_size=10)
 
+        # Load params from parameter server
+        self.linear_vel_max = rospy.get_param('linear_vel_max', 0.0)
+        self.linear_acc_max = rospy.get_param('linear_acc_max', 0.0)
+        self.angular_vel_max = rospy.get_param('angular_vel_max', 0.0)
+        self.angular_acc_max = rospy.get_param('angular_acc_max', 0.0)
+
         rospy.loginfo('Filters ready!')
 
     def set_update(self, data):
@@ -46,17 +52,21 @@ class TwistFilter(object):
 
         # Update only positive nonzero values
         if self.update_data.linear_vel_max > 0:
-            # self.linear_vel_max = data.linear_vel_max
-            rospy.set_param('~linear_vel_max', self.update_data.linear_vel_max)
+            self.linear_vel_max = self.update_data.linear_vel_max
+            param_name = rospy.search_param('linear_vel_max')
+            rospy.set_param(param_name, self.update_data.linear_vel_max)
         if self.update_data.linear_acc_max > 0:
-            # self.linear_acc_max = data.linear_acc_max
-            rospy.set_param('~linear_acc_max', self.update_data.linear_acc_max)
+            self.linear_acc_max = self.update_data.linear_acc_max
+            param_name = rospy.search_param('linear_acc_max')
+            rospy.set_param(param_name, self.update_data.linear_acc_max)
         if self.update_data.angular_vel_max > 0:
-            # self.angular_vel_max = data.angular_vel_max
-            rospy.set_param('~angular_vel_max', self.update_data.angular_vel_max)
+            self.angular_vel_max = self.update_data.angular_vel_max
+            param_name = rospy.search_param('angular_vel_max')
+            rospy.set_param(param_name, self.update_data.angular_vel_max)
         if self.update_data.angular_acc_max > 0:
-            # self.angular_acc_max = data.angular_acc_max
-            rospy.set_param('~angular_acc_max', self.update_data.angular_acc_max)
+            self.angular_acc_max = self.update_data.angular_acc_max
+            param_name = rospy.search_param('angular_acc_max')
+            rospy.set_param(param_name, self.update_data.angular_acc_max)
 
         # Reset component filters
         self.filters.linear.x.reset_filter(self.update_data)
@@ -87,12 +97,6 @@ class TwistFilter(object):
         # Publish smoothed response on separate topic
         # self.pub_cmd_smoothed.publish(cmd_out)
 
-        # Load params from parameter server
-        linear_vel_max = rospy.get_param('~linear_vel_max')
-        linear_acc_max = rospy.get_param('~linear_acc_max')
-        angular_vel_max = rospy.get_param('~angular_vel_max')
-        angular_acc_max = rospy.get_param('~angular_acc_max')
-
         # Get time step
         time_now = rospy.Time.now()
         time_delta = time_now.to_sec() - self.time_prev.to_sec()
@@ -102,12 +106,12 @@ class TwistFilter(object):
             return
 
         # Saturate at max accelerations and scale
-        if linear_acc_max > 0 or angular_acc_max > 0:
-            cmd_out = self._saturate_acc(cmd_out, linear_acc_max, angular_acc_max, time_delta)
+        if self.linear_acc_max > 0 or self.angular_acc_max > 0:
+            cmd_out = self._saturate_acc(cmd_out, self.linear_acc_max, self.angular_acc_max, time_delta)
 
         # Saturate at max velocities and scale
-        if linear_vel_max > 0 or angular_vel_max > 0:
-            cmd_out = self._saturate_vel(cmd_out, linear_vel_max, angular_vel_max)
+        if self.linear_vel_max > 0 or self.angular_vel_max > 0:
+            cmd_out = self._saturate_vel(cmd_out, self.linear_vel_max, self.angular_vel_max)
 
         # Publish output twist
         self.pub_cmd_out.publish(cmd_out)

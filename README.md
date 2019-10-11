@@ -29,10 +29,6 @@ $ roslaunch twist_filter iir_filter.launch      # IIR filter
 |-|-|-|-|
 |input|Filter input. Topic is of type Twist|String|'filter_in'|
 |output|Filter output. Topic is of type Twist|String|'filter_out'|
-|linear_vel_max|Linear velocity limit|Float|0.0|
-|angular_vel_max|Angular velocity limit|Float|0.0|
-|linear_acc_max|Linear acceleration limit|Float|0.0|
-|angular_acc_max|Angular acceleration limit|Float|0.0|
 
 You can remap the input and output filter topics as well:
 

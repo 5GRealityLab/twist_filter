@@ -24,10 +24,25 @@ class TwistFilter(object):
         # self.pub_cmd_smoothed = rospy.Publisher('filter_smooth', Twist, queue_size=10)
 
         # Load params from parameter server
-        self.linear_vel_max = rospy.get_param('linear_vel_max', 0.0)
-        self.linear_acc_max = rospy.get_param('linear_acc_max', 0.0)
-        self.angular_vel_max = rospy.get_param('angular_vel_max', 0.0)
-        self.angular_acc_max = rospy.get_param('angular_acc_max', 0.0)
+        try:
+            self.linear_vel_max = rospy.get_param('linear_vel_max')
+        except KeyError:
+            rospy.set_param('linear_vel_max', 0.0)
+        
+        try:
+            self.linear_acc_max = rospy.get_param('linear_acc_max')
+        except KeyError:
+            rospy.set_param('linear_acc_max', 0.0)
+
+        try:
+            self.angular_vel_max = rospy.get_param('angular_vel_max')
+        except KeyError:
+            rospy.set_param('angular_vel_max', 0.0)
+
+        try:
+            self.angular_acc_max = rospy.get_param('angular_acc_max')
+        except KeyError:
+            rospy.set_param('angular_acc_max', 0.0)
 
         rospy.loginfo('Filters ready!')
 

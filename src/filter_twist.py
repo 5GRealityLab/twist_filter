@@ -26,27 +26,27 @@ class TwistFilter(object):
         # Load params from parameter server
         try:
             self.linear_vel_max = rospy.get_param('linear_vel_max')
-        except KeyError:
+        except:
             rospy.set_param('linear_vel_max', 0.0)
-            self.linear_vel_max = 0.0
+        self.linear_vel_max = 0.0
         
         try:
             self.linear_acc_max = rospy.get_param('linear_acc_max')
-        except KeyError:
+        except:
             rospy.set_param('linear_acc_max', 0.0)
-            self.linear_acc_max = 0.0
+        self.linear_acc_max = 0.0
 
         try:
             self.angular_vel_max = rospy.get_param('angular_vel_max')
-        except KeyError:
+        except:
             rospy.set_param('angular_vel_max', 0.0)
-            self.angular_vel_max = 0.0
+        self.angular_vel_max = 0.0
 
         try:
             self.angular_acc_max = rospy.get_param('angular_acc_max')
-        except KeyError:
+        except:
             rospy.set_param('angular_acc_max', 0.0)
-            self.angular_acc_max = 0.0
+        self.angular_acc_max = 0.0
 
         rospy.loginfo('Filters ready!')
 

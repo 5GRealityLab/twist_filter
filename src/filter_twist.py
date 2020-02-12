@@ -4,8 +4,25 @@ import math
 from geometry_msgs.msg import Twist
 from twist_filter.msg import FilterConfig
 
+class AutoRepeat(object):
+    def __init__(self, pub_topic):
+        self.prev_time = rospy.Time.now()
+        self.cmd = Twist()
+        self.repeat = False
+        self.pub_cmd = rospy.Publisher(pub_topic, Twist, queue_size=10)
+
+        # Start repeat timer
+        rospy.Timer(rospy.Duration(1.0/30.0), self.autorepeat)
+
+    def autorepeat(self, event):
+        if self.repeat:
+            self.pub_cmd.publish(self.cmd)
+
 class TwistFilter(object):
     def __init__(self, components):
+        # Check if repeater is desired
+        self.use_repeater = rospy.get_param('~use_repeater')
+
         # Set component filters
         self.filters = components
 
@@ -19,27 +36,31 @@ class TwistFilter(object):
 
         # Load params from parameter server
         try:
-            self.linear_vel_max = rospy.get_param('linear_vel_max')
+            self.linear_vel_max = rospy.get_param('~linear_vel_max')
         except KeyError:
-            rospy.set_param('linear_vel_max', 0.0)
+            rospy.loginfo('Setting default max linear velocity to 0.0')
+            rospy.set_param('~linear_vel_max', 0.0)
             self.linear_vel_max = 0.0
         
         try:
-            self.linear_acc_max = rospy.get_param('linear_acc_max')
+            self.linear_acc_max = rospy.get_param('~linear_acc_max')
         except KeyError:
-            rospy.set_param('linear_acc_max', 0.0)
+            rospy.loginfo('Setting default max linear acceleration to 0.0')
+            rospy.set_param('~linear_acc_max', 0.0)
             self.linear_acc_max = 0.0
 
         try:
-            self.angular_vel_max = rospy.get_param('angular_vel_max')
+            self.angular_vel_max = rospy.get_param('~angular_vel_max')
         except KeyError:
-            rospy.set_param('angular_vel_max', 0.0)
+            rospy.loginfo('Setting default max angular velocity to 0.0')
+            rospy.set_param('~angular_vel_max', 0.0)
             self.angular_vel_max = 0.0
 
         try:
-            self.angular_acc_max = rospy.get_param('angular_acc_max')
+            self.angular_acc_max = rospy.get_param('~angular_acc_max')
         except KeyError:
-            rospy.set_param('angular_acc_max', 0.0)
+            rospy.loginfo('Setting default max angular acceleration to 0.0')
+            rospy.set_param('~angular_acc_max', 0.0)
             self.angular_acc_max = 0.0
 
         # Set up publishers/subscribers
@@ -47,6 +68,11 @@ class TwistFilter(object):
         self.sub_cmd_in = rospy.Subscriber('filter_in', Twist, self.filter_twist)
         self.pub_cmd_out = rospy.Publisher('filter_out', Twist, queue_size=10)
         # self.pub_cmd_smoothed = rospy.Publisher('filter_smooth', Twist, queue_size=10)
+
+        if self.use_repeater:
+            # Set up manual command repeater. The one built into the joy controller interferes with twist
+            # mux since it will constantly repeat even if there is no input from the user.
+            self.repeater = AutoRepeat('filter_out')
 
         rospy.loginfo('Filters ready!')
 
@@ -72,20 +98,16 @@ class TwistFilter(object):
         # Update only positive nonzero values
         if self.update_data.linear_vel_max > 0:
             self.linear_vel_max = self.update_data.linear_vel_max
-            param_name = rospy.search_param('linear_vel_max')
-            rospy.set_param(param_name, self.update_data.linear_vel_max)
+            rospy.set_param('~linear_vel_max', self.update_data.linear_vel_max)
         if self.update_data.linear_acc_max > 0:
             self.linear_acc_max = self.update_data.linear_acc_max
-            param_name = rospy.search_param('linear_acc_max')
-            rospy.set_param(param_name, self.update_data.linear_acc_max)
+            rospy.set_param('~linear_acc_max', self.update_data.linear_acc_max)
         if self.update_data.angular_vel_max > 0:
             self.angular_vel_max = self.update_data.angular_vel_max
-            param_name = rospy.search_param('angular_vel_max')
-            rospy.set_param(param_name, self.update_data.angular_vel_max)
+            rospy.set_param('~angular_vel_max', self.update_data.angular_vel_max)
         if self.update_data.angular_acc_max > 0:
             self.angular_acc_max = self.update_data.angular_acc_max
-            param_name = rospy.search_param('angular_acc_max')
-            rospy.set_param(param_name, self.update_data.angular_acc_max)
+            rospy.set_param('~angular_acc_max', self.update_data.angular_acc_max)
 
         # Reset component filters
         self.filters.linear.x.reset_filter(self.update_data)
@@ -132,8 +154,21 @@ class TwistFilter(object):
         if self.linear_vel_max > 0 or self.angular_vel_max > 0:
             cmd_out = self._saturate_vel(cmd_out, self.linear_vel_max, self.angular_vel_max)
 
-        # Publish output twist
-        self.pub_cmd_out.publish(cmd_out)
+        # Publish the output command to the repeater or the topic, depending on the filter config
+        if self.use_repeater:
+            # If filtered twist is a zero twist, do not publish any more twists until a nonzero twist is recieved
+            if cmd_out.linear.x == 0.0 and cmd_out.linear.y == 0.0 and cmd_out.angular.z == 0.0:
+                if self.repeater.repeat:
+                    # Publish the twist
+                    self.repeater.pub_cmd.publish(cmd_out)
+
+                    # Set repeatear to False
+                    self.repeater.repeat = False
+            else:
+                self.repeater.cmd = cmd_out
+                self.repeater.repeat = True
+        else:
+            self.pub_cmd_out.publish(cmd_out)
 
         # Update previous values
         self.twist_prev = cmd_out

@@ -27,8 +27,11 @@ $ roslaunch twist_filter iir_filter.launch      # IIR filter
 
 |Argument|Description|Type|Default Value|
 |-|-|-|-|
+|filter_name|Name to use for the node|String|'twist_filter'|
 |input|Filter input. Topic is of type Twist|String|'filter_in'|
 |output|Filter output. Topic is of type Twist|String|'filter_out'|
+|filter_config|Path to a filter config file|String|'$(find twist_filter)/config/default_<FILTER_TYPE>.yaml'|
+|use_repeater|Indicator to use the repeater function|Boolean|'false'|
 
 You can remap the input and output filter topics as well:
 

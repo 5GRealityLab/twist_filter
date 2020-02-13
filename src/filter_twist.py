@@ -12,7 +12,7 @@ class AutoRepeat(object):
         self.pub_cmd = rospy.Publisher(pub_topic, Twist, queue_size=10)
 
         # Start repeat timer
-        rospy.Timer(rospy.Duration(1.0/30.0), self.autorepeat)
+        rospy.Timer(rospy.Duration(1.0/50.0), self.autorepeat)
 
     def autorepeat(self, event):
         if self.repeat:

@@ -261,7 +261,7 @@ class TwistFilter(object):
             # Break if new ratios are both >= 1.0 (if scale_order length is larger than 1)
             if len(scale_order) > 1:
                 linear_mag, angular_mag = self._get_twist_mag(sat_twist)
-                l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
+                l_ratio, a_ratio = self._get_max_ratios(linear_mag, angular_mag, l_max, a_max)
 
                 # No need for more scaling since constraints are already met
                 if l_ratio <= 1.0 and a_ratio <= 1.0:
@@ -308,7 +308,7 @@ class TwistFilter(object):
             # Break if new ratios are both >= 1.0 (if scale_order length is larger than 1)
             if len(scale_order) > 1:
                 linear_mag, angular_mag = self._get_twist_mag(acc)
-                l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
+                l_ratio, a_ratio = self._get_max_ratios(linear_mag, angular_mag, l_max, a_max)
 
                 # No need for more scaling since constraints are already met
                 if l_ratio <= 1.0 and a_ratio <= 1.0:

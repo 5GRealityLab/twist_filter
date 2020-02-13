@@ -1,17 +1,15 @@
 <launch>
     <arg name='input' default='filter_in' />
     <arg name='output' default='filter_out' />
+    <arg name='filter_config' default='$(find twist_filter)/config/default_iir.yaml' />
+    <arg name='use_repeater' default='false' />
 
-    <!-- Launch filter and required params -->
-    <node name='filter' pkg='twist_filter' type='init_iir.py' output='screen'>
+    <!-- Launch filter -->
+    <node name='iir_twist_filter' pkg='twist_filter' type='init_iir.py' output='screen'>
         <remap from='filter_in' to='$(arg input)' />
         <remap from='filter_out' to='$(arg output)' />
 
-        <rosparam command='load'>
-            num_samples: 10
-            weights: [0.35, 0.15, 0.1, 0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05]
-            num_out_samples: 5
-            out_weights: [0.1, 0.2, 0.2, 0.25, 0.25]
-        </rosparam>
+        <rosparam file="$(arg filter_config)" command="load" />
+        <param name='use_repeater' value='$(arg use_repeater)' />
     </node>
 </launch>

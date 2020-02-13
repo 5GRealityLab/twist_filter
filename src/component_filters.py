@@ -48,7 +48,7 @@ class FilterType(object):
                that should be defined in each individual sub-class
         '''
 
-        return
+        return 0
 
     def filter_signal(self, data):
         '''

@@ -1,14 +1,9 @@
 <launch>
-    <arg name='input' default='filter_in' />
-    <arg name='output' default='filter_out' />
-    <arg name='filter_config' default='$(find twist_filter)/config/default_fir.yaml' />
-    <arg name='timeout' default='0.25' />
+    <arg name='filter_config'   default='$(find twist_filter)/config/default_fir.yaml' />
+    <arg name='timeout'         default='0.25' />
 
     <!-- Launch filter -->
     <node name='fir_twist_filter' pkg='twist_filter' type='init_fir.py' output='screen'>
-        <remap from='filter_in' to='$(arg input)' />
-        <remap from='filter_out' to='$(arg output)' />
-
         <rosparam file="$(arg filter_config)" command="load" />
         <param name='input_timeout' value='$(arg timeout)' />
     </node>

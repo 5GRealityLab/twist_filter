@@ -4,36 +4,8 @@ import math
 from geometry_msgs.msg import Twist
 from twist_filter.msg import FilterConfig
 
-class AutoRepeat(object):
-    def __init__(self, pub_topic):
-        self.prev_time = rospy.Time.now()
-        self.cmd = Twist()
-        self.repeat = False
-        self.pub_cmd = rospy.Publisher(pub_topic, Twist, queue_size=10)
-
-        # Start repeat timer
-        rospy.Timer(rospy.Duration(1.0/50.0), self.autorepeat)
-
-    def autorepeat(self, event):
-        if self.repeat:
-            self.pub_cmd.publish(self.cmd)
-
 class TwistFilter(object):
     def __init__(self, components):
-        # Check if repeater is desired
-        self.use_repeater = rospy.get_param('~use_repeater')
-
-        # Set component filters
-        self.filters = components
-
-        # Initialize update flag
-        self.update_flag = False
-        self.update_data = FilterConfig()
-
-        # Set prev values
-        self.time_prev = rospy.Time.now()
-        self.twist_prev = Twist()
-
         # Load params from parameter server
         try:
             self.linear_vel_max = rospy.get_param('~linear_vel_max')
@@ -63,18 +35,39 @@ class TwistFilter(object):
             rospy.set_param('~angular_acc_max', self.angular_acc_max)
         rospy.loginfo('Setting default max angular acceleration to ' + str(self.angular_acc_max))
 
+        try:
+            self.timeout = rospy.get_param('~input_timeout')
+        except KeyError:
+            self.timeout = 0.25
+            rospy.set_param('~input_timeout', self.timeout)
+        rospy.loginfo('Setting default input timeout to ' + str(self.timeout) + ' seconds')
+
+        # Set component filters
+        self.filters = components
+
+        # Initialize update flag
+        self.update_flag = False
+        self.update_data = FilterConfig()
+
+        # Set prev values
+        self.time_prev = rospy.Time.now()
+        self.twist_prev = Twist()
+
+        # Start command publisher
+        self.stopped = True
+        self.cmd = Twist()
+        self.prev_time = rospy.Time.now()
+        self.cmd_publisher = rospy.Timer(rospy.Duration(1.0/50.0), self.pub_cmd)
+
         # Set up publishers/subscribers
         self.sub_config = rospy.Subscriber('filter_config', FilterConfig, self.set_update)
-        self.sub_cmd_in = rospy.Subscriber('filter_in', Twist, self.filter_twist)
+        self.sub_cmd_in = rospy.Subscriber('filter_in', Twist, self.update_twist)
         self.pub_cmd_out = rospy.Publisher('filter_out', Twist, queue_size=10)
+
+        ## Uncomment to publish smoothed twist without velocity/acceleration filtering
         # self.pub_cmd_smoothed = rospy.Publisher('filter_smooth', Twist, queue_size=10)
 
-        if self.use_repeater:
-            # Set up manual command repeater. The one built into the joy controller interferes with twist
-            # mux since it will constantly repeat even if there is no input from the user.
-            self.repeater = AutoRepeat('filter_out')
-
-        rospy.loginfo('Filters ready!')
+        rospy.loginfo(rospy.get_name() + ': Twist filters ready!')
 
     def set_update(self, data):
         '''
@@ -87,6 +80,10 @@ class TwistFilter(object):
         self.update_flag = True
         self.update_data = data
         rospy.loginfo('Update requested.')
+
+    def update_twist(self, data):
+        self.cmd = data
+        self.prev_time = rospy.Time.now()
 
     def update_config(self):
         '''
@@ -119,6 +116,24 @@ class TwistFilter(object):
 
         rospy.loginfo('Config values updated!')
 
+    def pub_cmd(self, event):
+        # Reset twist if we havent gotten an input for specified timeout
+        if rospy.Time.now().to_sec() - self.prev_time.to_sec() > self.timeout:
+            cmd = self.filter_twist(Twist())
+        # Otherwise calculate output twist
+        else:
+            cmd = self.filter_twist(self.cmd)
+
+        # If a zero twist is calculated, publish only once
+        if cmd == Twist():
+            if not self.stopped:
+                self.pub_cmd_out.publish(cmd)
+                self.stopped = True
+        # Otherwise keep publishing
+        else:
+            self.stopped = False
+            self.pub_cmd_out.publish(cmd)
+
     def filter_twist(self, data):
         # Check if config needs to be updated
         if self.update_flag:
@@ -127,14 +142,14 @@ class TwistFilter(object):
 
         # Get filtered response and scale to max linear and angular velocities
         cmd_out = Twist()
-        cmd_out.linear.x = self.filters.linear.x.filter_signal(data.linear.x) #* self.linear_vel_max
-        cmd_out.linear.y = self.filters.linear.y.filter_signal(data.linear.y) #* self.linear_vel_max
-        cmd_out.linear.z = self.filters.linear.z.filter_signal(data.linear.z) #* self.linear_vel_max
-        cmd_out.angular.x = self.filters.angular.x.filter_signal(data.angular.x) #* self.angular_vel_max
-        cmd_out.angular.y = self.filters.angular.y.filter_signal(data.angular.y) #* self.angular_vel_max
-        cmd_out.angular.z = self.filters.angular.z.filter_signal(data.angular.z) #* self.angular_vel_max
+        cmd_out.linear.x = self.filters.linear.x.filter_signal(data.linear.x)
+        cmd_out.linear.y = self.filters.linear.y.filter_signal(data.linear.y)
+        cmd_out.linear.z = self.filters.linear.z.filter_signal(data.linear.z)
+        cmd_out.angular.x = self.filters.angular.x.filter_signal(data.angular.x)
+        cmd_out.angular.y = self.filters.angular.y.filter_signal(data.angular.y)
+        cmd_out.angular.z = self.filters.angular.z.filter_signal(data.angular.z)
 
-        # Publish smoothed response on separate topic
+        ## Uncomment to publish smoothed twist without velocity/acceleration filtering
         # self.pub_cmd_smoothed.publish(cmd_out)
 
         # Get time step
@@ -153,25 +168,11 @@ class TwistFilter(object):
         if self.linear_acc_max > 0 or self.angular_acc_max > 0:
             cmd_out = self._saturate_acc(cmd_out, self.linear_acc_max, self.angular_acc_max, time_delta)
 
-        # Publish the output command to the repeater or the topic, depending on the filter config
-        if self.use_repeater:
-            # If filtered twist is a zero twist, do not publish any more twists until a nonzero twist is recieved
-            if cmd_out.linear.x == 0.0 and cmd_out.linear.y == 0.0 and cmd_out.angular.z == 0.0:
-                if self.repeater.repeat:
-                    # Publish the twist
-                    self.repeater.pub_cmd.publish(cmd_out)
-
-                    # Set repeatear to False
-                    self.repeater.repeat = False
-            else:
-                self.repeater.cmd = cmd_out
-                self.repeater.repeat = True
-        else:
-            self.pub_cmd_out.publish(cmd_out)
-
         # Update previous values
         self.twist_prev = cmd_out
         self.time_prev = time_now
+
+        return cmd_out
 
     def _get_twist_mag(self, v):
         '''

@@ -1,9 +1,10 @@
 <launch>
     <arg name='filter_config'   default='$(find twist_filter)/config/default_iir.yaml' />
     <arg name='timeout'         default='0.25' />
+    <arg name='filter_name'     default='iir_twist_filter' />
 
     <!-- Launch filter -->
-    <node name='iir_twist_filter' pkg='twist_filter' type='init_iir.py' output='screen'>
+    <node name='$(arg filter_name)' pkg='twist_filter' type='init_iir.py' output='screen'>
         <rosparam file="$(arg filter_config)" command="load" />
         <param name='input_timeout' value='$(arg timeout)' />
     </node>

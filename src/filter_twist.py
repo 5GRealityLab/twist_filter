@@ -132,7 +132,8 @@ class TwistFilter(object):
         # Otherwise keep publishing
         else:
             self.stopped = False
-            self.pub_cmd_out.publish(cmd)
+            if cmd != None:
+                self.pub_cmd_out.publish(cmd)
 
     def filter_twist(self, data):
         # Check if config needs to be updated

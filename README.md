@@ -78,6 +78,8 @@ As mentioned above, there are two layers of filtering involved. The initial filt
 
 The smoothed signal is then passed to the higher level filter which looks at the twist as a whole rather than its individual components. The linear and angular magnitudes of both velocity and acceleration are calculated and then compared to the maximum values specified by the user (either from the motion config profile or from reconfigurations during runtime via the configuration topic). If any of the magnitudes cross the specified threshold, the entire twist is scaled accordingly so that the output twist is entirely constrained by the motion config profile. All components are scaled the same amount to preserve the motion of the original twist. This level of filtering can also be skipped if the maximum limits are set to 0.
 
+*NOTE: Given that this filter is deigned for twists, it has a special behavior for twists of no value (all zeros). When the publisher sees a zero twist, it gets published once and all subsequent zero twists are ignored. This was made to prevent constant publication of empty twists so that it is more compatible with the `twist_mux` package. The publisher will start publishing again once a non-zero twist is passed to it. It is not recommended to use this filter if your device uses this output as some kind of heartbeat that needs a continuous publisher.*
+
 ## Samples
 
 The following images are samples of the linear X component of an incoming signal from a PS3 controller. The `joy` package was used to read the controller data as inputs to generate a twist.

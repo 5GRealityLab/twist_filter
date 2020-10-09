@@ -123,16 +123,17 @@ class TwistFilter(object):
         # Otherwise calculate output twist
         else:
             cmd = self.filter_twist(self.cmd)
+        self.pub_cmd_out.publish(cmd)
 
-        # If a zero twist is calculated, publish only once
-        if cmd == Twist():
-            if not self.stopped:
-                self.pub_cmd_out.publish(cmd)
-                self.stopped = True
-        # Otherwise keep publishing
-        else:
-            self.stopped = False
-            if cmd != None:
+        # # If a zero twist is calculated, publish only once
+        # if cmd == Twist():
+        #     if not self.stopped:
+        #         self.pub_cmd_out.publish(cmd)
+        #         self.stopped = True
+        # # Otherwise keep publishing
+        # else:
+        #     self.stopped = False
+        #     if cmd != None:
                 self.pub_cmd_out.publish(cmd)
 
     def filter_twist(self, data):

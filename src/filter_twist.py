@@ -120,10 +120,14 @@ class TwistFilter(object):
         # Reset twist if we havent gotten an input for specified timeout
         if rospy.Time.now().to_sec() - self.prev_time.to_sec() > self.timeout:
             cmd = self.filter_twist(Twist())
+            self.stopped = True
         # Otherwise calculate output twist
         else:
             cmd = self.filter_twist(self.cmd)
-        self.pub_cmd_out.publish(cmd)
+            self.stopped = False
+        
+        if not self.stopped:
+            self.pub_cmd_out.publish(cmd)
 
         # # If a zero twist is calculated, publish only once
         # if cmd == Twist():

@@ -53,16 +53,16 @@ class TwistFilter(object):
         self.time_prev = rospy.Time.now()
         self.twist_prev = Twist()
 
-        # Start command publisher
-        self.stopped = True
-        self.cmd = Twist()
-        self.prev_time = rospy.Time.now()
-        self.cmd_publisher = rospy.Timer(rospy.Duration(1.0/50.0), self.pub_cmd)
-
         # Set up publishers/subscribers
         self.sub_config = rospy.Subscriber('filter_config', FilterConfig, self.set_update)
         self.sub_cmd_in = rospy.Subscriber('filter_in', Twist, self.update_twist)
         self.pub_cmd_out = rospy.Publisher('filter_out', Twist, queue_size=10)
+
+        # Start command publisher
+        self.stopped = False
+        self.cmd = Twist()
+        self.prev_time = rospy.Time.now()
+        self.cmd_publisher = rospy.Timer(rospy.Duration(1.0/50.0), self.pub_cmd)
 
         ## Uncomment to publish smoothed twist without velocity/acceleration filtering
         # self.pub_cmd_smoothed = rospy.Publisher('filter_smooth', Twist, queue_size=10)

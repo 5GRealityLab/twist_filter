@@ -88,13 +88,13 @@ The following images are samples of the linear X component of an incoming signal
 
 #### Moving Average Filter
 
-Response from a 10-sample moving average filter. Input is in blue and output is in red.
+Response from a 5-sample moving average filter. Input is in purple and output is in green.
 
 ![MAF](img/maf.png)
 
 #### FIR Filter
 
-Response from a 10-sample FIR filter with the following weights: [0.35, 0.15, 0.1, 0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05]. Input is in blue and output is in red.
+Response from a 5-sample FIR filter with the following weights: [0.3, 0.25, 0.15, 0.15, 0.1, 0.05]. Input is in purple and output is in green.
 
 ![FIR](img/fir.png)
 

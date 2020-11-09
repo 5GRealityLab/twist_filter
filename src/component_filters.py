@@ -2,21 +2,54 @@
 from enum import Enum
 import rospy
 
-class TwistFilterComponent(object):
-    def __init__(self):
-        self.x = None
-        self.y = None
-        self.z = None
+class FIRTwistFilterObject(object):
+    def __init__(self, config):        
+        self.linear = {}
+        self.angular = {}
 
-class TwistFilterObject(object):
-    def __init__(self):
-        self.linear = TwistFilterComponent()
-        self.angular = TwistFilterComponent()
+        self.num_samples = 2
+        self.weights = []
 
-class FilterType(object):
-    def __init__(self):
+        # Create filters
+        lin_config = config['linear']
+        ang_config = config['angular']
+        for key in lin_config:
+            if lin_config[key]:
+                self.linear[key] = FIRFilter(self.num_samples, self.weights)
+                rospy.loginfo('Created component filter for linear.' + key)
+        for key in ang_config:
+            if ang_config[key]:
+                self.angular[key] = FIRFilter(self.num_samples, self.weights)
+                rospy.loginfo('Created component filter for angular.' + key)
+
+    def update_filters(self, config):
+        rospy.loginfo("""Filter Reconfigure Request: Number of samples: {num_samples}, Weights: {weights}""".format(**config))
+
+        weights = []
+        if not config['weights'] == '':
+            weights = config['weights'].split(',')
+
+        # Only update if number of weights match with respective sample number, or empty weights array defaults to moving average filter
+        if config['num_samples'] == len(weights) or len(weights) == 0:
+            self.num_samples = config['num_samples']
+            self.weights = weights
+
+            # Reset filters
+            self.reset_filters(self.num_samples, self.weights)
+        else:
+            rospy.logwarn('Could not update filter. Make sure number of samples and respective weights match.')
+
+    def reset_filters(self, num_samples, weights):
+        for key in self.linear:
+            self.linear[key].reset(num_samples, weights)
+        for key in self.angular:
+            self.angular[key].reset(num_samples, weights)
+        rospy.loginfo('Component filters reset.')
+
+class FilterBase(object):
+    def __init__(self, num_samples):
         # Construct filter sample array
-        self.num_samples = rospy.get_param('~num_samples')
+        self.num_samples = num_samples
         self.samples = [0]*self.num_samples
 
     def __str__(self):
@@ -44,11 +77,14 @@ class FilterType(object):
 
     def get_result(self):
         '''
-        @brief Returns the filter response. This is a prototype function
-               that should be defined in each individual sub-class
+        @brief Returns the filter response. The default behavior is to
+               implement a moving average filter
         '''
 
-        return 0
+        result = 0
+        for i in range(len(self.samples)):
+            result += self.samples[i]
+        return result / len(self.samples)
 
     def filter_signal(self, data):
         '''
@@ -63,30 +99,20 @@ class FilterType(object):
         result = self.get_result()
         return result
 
-    def reset_filter(self, data):
+    def reset(self, num_samples, weights):
         '''
         @brief Resets filter according to new parameters
 
         @param data - New configuration
         '''
 
-        if data.num_samples > 0:
-            new_samples = [0] * data.num_samples
-            if data.num_samples > self.num_samples:
-                for s in range(self.num_samples):
-                    new_samples[s] = self.samples[s]
-            elif data.num_samples < self.num_samples:
-                for s in range(data.num_samples):
-                    new_samples[s] = self.samples[s]
+        self.num_samples = num_samples
+        self.samples = [0] * num_samples
 
-            self.num_samples = data.num_samples
-            self.samples = new_samples
-
-            rospy.set_param('~num_samples', self.num_samples)
-
-class MAFilter(FilterType):
-    def __init__(self):
-        super(MAFilter, self).__init__()
+class FIRFilter(FilterBase):
+    def __init__(self, num_samples, weights):
+        super(FIRFilter, self).__init__(num_samples)
+        self.weights = weights
 
     def get_result(self):
         '''
@@ -96,57 +122,21 @@ class MAFilter(FilterType):
         '''
 
         result = 0
-        for s in self.samples:
-            result += s
-        return result / self.num_samples
-
-class FIRFilter(FilterType):
-    def __init__(self):
-        super(FIRFilter, self).__init__()
-        self.weights = rospy.get_param('~weights')
-
-    def get_result(self):
-        '''
-        @brief Computes filtered response and returns it
-
-        @returns - result
-        '''
-
-        result = 0
-        for i in range(len(self.samples)):
-            result += self.samples[i] * self.weights[i]
+        if len(self.weights) > 0:
+            for i in range(len(self.samples)):
+                result += self.samples[i] * self.weights[i]
+        else:
+            for i in range(len(self.samples)):
+                result += self.samples[i]
+            result = result / len(self.samples)
         return result
 
-    def reset_filter(self, data):
-        '''
-        @brief Resets filter according to new parameters
+    def reset(self, num_samples, weights):
+        self.num_samples = num_samples
+        self.samples = [0] * num_samples
+        self.weights = weights
 
-        @param data - New configuration
-        '''
-
-        if data.num_samples > 0:
-            # Make sure weights match the sample size
-            if data.num_samples != len(data.weights):
-                rospy.loginfo('Number of weights does not match sample number. Cannot update filter!')
-                return
-
-            # Update samples and weights    
-            new_samples = [0] * data.num_samples
-            if data.num_samples > self.num_samples:
-                for s in range(self.num_samples):
-                    new_samples[s] = self.samples[s]
-            elif data.num_samples < self.num_samples:
-                for s in range(data.num_samples):
-                    new_samples[s] = self.samples[s]
-
-            self.num_samples = data.num_samples
-            self.samples = new_samples
-            self.weights = data.weights
-
-            rospy.set_param('~num_samples', self.num_samples)
-            rospy.set_param('~weights', self.weights)
-
-class IIRFilter(FilterType):
+class IIRFilter(FilterBase):
     def __init__(self):
         super(IIRFilter, self).__init__()
         self.num_out_samples = rospy.get_param('~num_out_samples')

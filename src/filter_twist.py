@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import rospy
 import math
+import copy
 from geometry_msgs.msg import Twist
 from dynamic_reconfigure.server import Server
 from twist_filter.cfg import FilterConfig
@@ -96,9 +97,10 @@ class TwistFilter(object):
         # if time_delta < 0.0000001:
         #     return
 
-        # # Saturate at max velocities and scale
-        # if self.linear_vel_max > 0 or self.angular_vel_max > 0:
-        #     cmd_out = self._saturate_vel(cmd_out, self.linear_vel_max, self.angular_vel_max)
+        # Saturate at max velocities and scale
+        if self.linear_vel_max > 0 or self.angular_vel_max > 0:
+            # cmd_out = self._saturate_vel(cmd_out, self.linear_vel_max, self.angular_vel_max)
+            cmd_out = self._saturate_vel2(cmd_out, self.linear_vel_max, self.angular_vel_max)
 
         # # Saturate at max accelerations and scale
         # if self.linear_acc_max > 0 or self.angular_acc_max > 0:
@@ -171,6 +173,36 @@ class TwistFilter(object):
 
         return valid
 
+    def _saturate_vel2(self, v, l_max, a_max):
+        sat_twist = copy.deepcopy(v)
+
+        # Saturate linear
+        # Get magnitude
+        mag = self._get_mag(sat_twist.linear)
+        
+        # If magnitude is larger than max, saturate
+        if mag > l_max:
+            # Get ratio of current mag and max mag
+            ratio = l_max / mag
+            sat_twist.linear.x *= ratio
+            sat_twist.linear.y *= ratio
+            sat_twist.linear.z *= ratio
+
+        # Saturate Angular
+        # Get magnitude
+        mag = self._get_mag(sat_twist.angular)
+        
+        # If magnitude is larger than max, saturate
+        if mag > a_max:
+            # Get ratio of current mag and max mag
+            ratio = a_max / mag
+            sat_twist.angular.x *= ratio
+            sat_twist.angular.y *= ratio
+            sat_twist.angular.z *= ratio
+        return sat_twist
+
+    def _get_mag(self, v_comp):
+        return math.sqrt(v_comp.x**2 + v_comp.y**2 + v_comp.z**2)
 
     def _saturate_vel(self, v, l_max, a_max):
         '''

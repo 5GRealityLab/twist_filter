@@ -99,12 +99,11 @@ class TwistFilter(object):
 
         # Saturate at max velocities and scale
         if self.linear_vel_max > 0 or self.angular_vel_max > 0:
-            # cmd_out = self._saturate_vel(cmd_out, self.linear_vel_max, self.angular_vel_max)
-            cmd_out = self._saturate_vel2(cmd_out, self.linear_vel_max, self.angular_vel_max)
+            cmd_out = self._saturate_vel(cmd_out, self.linear_vel_max, self.angular_vel_max)
 
-        # # Saturate at max accelerations and scale
-        # if self.linear_acc_max > 0 or self.angular_acc_max > 0:
-        #     cmd_out = self._saturate_acc(cmd_out, self.linear_acc_max, self.angular_acc_max, time_delta)
+        # Saturate at max accelerations and scale
+        if self.linear_acc_max > 0 or self.angular_acc_max > 0:
+            cmd_out = self._saturate_acc(cmd_out, self.linear_acc_max, self.angular_acc_max, time_delta)
 
         # Update previous values
         self.twist_prev = cmd_out
@@ -173,7 +172,7 @@ class TwistFilter(object):
 
         return valid
 
-    def _saturate_vel2(self, v, l_max, a_max):
+    def _saturate_vel(self, v, l_max, a_max):
         sat_twist = copy.deepcopy(v)
 
         # Saturate linear
@@ -204,85 +203,29 @@ class TwistFilter(object):
     def _get_mag(self, v_comp):
         return math.sqrt(v_comp.x**2 + v_comp.y**2 + v_comp.z**2)
 
-    def _saturate_vel(self, v, l_max, a_max):
-        '''
-        @brief Saturate and scale input twist according to linear and angular
-               velocity limits
-        
-        @param v - Input twist
-        @returns sat_twist - Saturated output twist
-        '''
-
-        sat_twist = Twist()
-        sat_twist.linear.x = v.linear.x
-        sat_twist.linear.y = v.linear.y
-        sat_twist.linear.z = v.linear.z
-        sat_twist.angular.x = v.angular.x
-        sat_twist.angular.y = v.angular.y
-        sat_twist.angular.z = v.angular.z
-
-        # Calculate linear and angular magnitudes and get their ratios
-        l_mag, a_mag = self._get_twist_mag(sat_twist)
-        l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
-
-        # Determine the order in which to scale the twist
-        scale_order = self._get_scaling_order([l_ratio, a_ratio])
-        
-        # Scale velocities
-        for r in scale_order:
-            if l_ratio >= 1.0 and a_ratio >= 1.0:
-                break
-            else:
-                sat_twist = self._scale_twist(sat_twist, r)
-
-                # Calculate new linear and angular magnitudes and get their ratios
-                l_mag, a_mag = self._get_twist_mag(sat_twist)
-                l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
-
-        return sat_twist
-
     def _saturate_acc(self, v, l_max, a_max, time_delta):
-        '''
-        @brief Scales input twist so that it is constrained by the maximum
-               linear and angular acceleration limits
-        
-        @param v - Input twist
-        @param linear_max - Linear acceleration max
-        @param angular_max - Angular acceleration max
-        @returns sat_twist - Saturated twist
-        '''
+        sat_twist = copy.deepcopy(v)
 
-        sat_twist = Twist()
-        sat_twist.linear.x = v.linear.x
-        sat_twist.linear.y = v.linear.y
-        sat_twist.linear.z = v.linear.z
-        sat_twist.angular.x = v.angular.x
-        sat_twist.angular.y = v.angular.y
-        sat_twist.angular.z = v.angular.z
-
-        # Get linear acceleration
+        # Get acceleration
         acc = self._get_acc(sat_twist, time_delta)
 
-        # Calculate magnitudes and get their ratios
-        l_mag, a_mag = self._get_twist_mag(acc)
-        l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
+        # Saturate linear acceleration
+        mag = self._get_mag(acc.linear)
+        if mag > l_max:
+            ratio = l_max / mag
+            acc.linear.x *= ratio
+            acc.linear.y *= ratio
+            acc.linear.z *= ratio
 
-        # Determine the order in which to scale acceleration
-        scale_order = self._get_scaling_order([l_ratio, a_ratio])
+        # Saturate angular acceleration
+        mag = self._get_mag(acc.angular)
+        if mag > a_max:
+            ratio = a_max / mag
+            acc.angular.x *= ratio
+            acc.angular.y *= ratio
+            acc.angular.z *= ratio
 
-        # Scale accelerations
-        for r in scale_order:
-            if l_ratio >= 1.0 and a_ratio >= 1.0:
-                break
-            else:
-                # Multiply each acceleration value by the scaling ratio
-                acc = self._scale_twist(acc, r)
-
-                # Calculate new linear and angular magnitudes and get their ratios
-                l_mag, a_mag = self._get_twist_mag(sat_twist)
-                l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
-
-        # Solve for twist values given the new scaled acceleration values
+        # Calculate saturated twist
         sat_twist.linear.x = (acc.linear.x * time_delta) + self.twist_prev.linear.x
         sat_twist.linear.y = (acc.linear.y * time_delta) + self.twist_prev.linear.y
         sat_twist.linear.z = (acc.linear.z * time_delta) + self.twist_prev.linear.z
@@ -292,24 +235,112 @@ class TwistFilter(object):
 
         return sat_twist
 
-    def _scale_twist(self, v, ratio):
-        '''
-        @brief Scales the input twist by the scaling factor
+    # def _saturate_vel(self, v, l_max, a_max):
+    #     '''
+    #     @brief Saturate and scale input twist according to linear and angular
+    #            velocity limits
+        
+    #     @param v - Input twist
+    #     @returns sat_twist - Saturated output twist
+    #     '''
 
-        @param v - Input twist
-        @param ratio - Scaling factor
-        @returns scaled_twist - Scaled twist
-        '''
+    #     sat_twist = Twist()
+    #     sat_twist.linear.x = v.linear.x
+    #     sat_twist.linear.y = v.linear.y
+    #     sat_twist.linear.z = v.linear.z
+    #     sat_twist.angular.x = v.angular.x
+    #     sat_twist.angular.y = v.angular.y
+    #     sat_twist.angular.z = v.angular.z
 
-        scaled_twist = v
-        scaled_twist.linear.x *= ratio
-        scaled_twist.linear.y *= ratio
-        scaled_twist.linear.z *= ratio
-        scaled_twist.angular.x *= ratio
-        scaled_twist.angular.y *= ratio
-        scaled_twist.angular.z *= ratio
+    #     # Calculate linear and angular magnitudes and get their ratios
+    #     l_mag, a_mag = self._get_twist_mag(sat_twist)
+    #     l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
 
-        return scaled_twist
+    #     # Determine the order in which to scale the twist
+    #     scale_order = self._get_scaling_order([l_ratio, a_ratio])
+        
+    #     # Scale velocities
+    #     for r in scale_order:
+    #         if l_ratio >= 1.0 and a_ratio >= 1.0:
+    #             break
+    #         else:
+    #             sat_twist = self._scale_twist(sat_twist, r)
+
+    #             # Calculate new linear and angular magnitudes and get their ratios
+    #             l_mag, a_mag = self._get_twist_mag(sat_twist)
+    #             l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
+
+    #     return sat_twist
+
+    # def _saturate_acc(self, v, l_max, a_max, time_delta):
+    #     '''
+    #     @brief Scales input twist so that it is constrained by the maximum
+    #            linear and angular acceleration limits
+        
+    #     @param v - Input twist
+    #     @param linear_max - Linear acceleration max
+    #     @param angular_max - Angular acceleration max
+    #     @returns sat_twist - Saturated twist
+    #     '''
+
+    #     sat_twist = Twist()
+    #     sat_twist.linear.x = v.linear.x
+    #     sat_twist.linear.y = v.linear.y
+    #     sat_twist.linear.z = v.linear.z
+    #     sat_twist.angular.x = v.angular.x
+    #     sat_twist.angular.y = v.angular.y
+    #     sat_twist.angular.z = v.angular.z
+
+    #     # Get linear acceleration
+    #     acc = self._get_acc(sat_twist, time_delta)
+
+    #     # Calculate magnitudes and get their ratios
+    #     l_mag, a_mag = self._get_twist_mag(acc)
+    #     l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
+
+    #     # Determine the order in which to scale acceleration
+    #     scale_order = self._get_scaling_order([l_ratio, a_ratio])
+
+    #     # Scale accelerations
+    #     for r in scale_order:
+    #         if l_ratio >= 1.0 and a_ratio >= 1.0:
+    #             break
+    #         else:
+    #             # Multiply each acceleration value by the scaling ratio
+    #             acc = self._scale_twist(acc, r)
+
+    #             # Calculate new linear and angular magnitudes and get their ratios
+    #             l_mag, a_mag = self._get_twist_mag(sat_twist)
+    #             l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
+
+    #     # Solve for twist values given the new scaled acceleration values
+    #     sat_twist.linear.x = (acc.linear.x * time_delta) + self.twist_prev.linear.x
+    #     sat_twist.linear.y = (acc.linear.y * time_delta) + self.twist_prev.linear.y
+    #     sat_twist.linear.z = (acc.linear.z * time_delta) + self.twist_prev.linear.z
+    #     sat_twist.angular.x = (acc.angular.x * time_delta) + self.twist_prev.angular.x
+    #     sat_twist.angular.y = (acc.angular.y * time_delta) + self.twist_prev.angular.y
+    #     sat_twist.angular.z = (acc.angular.z * time_delta) + self.twist_prev.angular.z
+
+    #     return sat_twist
+
+    # def _scale_twist(self, v, ratio):
+    #     '''
+    #     @brief Scales the input twist by the scaling factor
+
+    #     @param v - Input twist
+    #     @param ratio - Scaling factor
+    #     @returns scaled_twist - Scaled twist
+    #     '''
+
+    #     scaled_twist = v
+    #     scaled_twist.linear.x *= ratio
+    #     scaled_twist.linear.y *= ratio
+    #     scaled_twist.linear.z *= ratio
+    #     scaled_twist.angular.x *= ratio
+    #     scaled_twist.angular.y *= ratio
+    #     scaled_twist.angular.z *= ratio
+
+    #     return scaled_twist
 
     def _get_acc(self, v, time_delta):
         '''

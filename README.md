@@ -106,22 +106,22 @@ Response from an IIR filter with a 10-sample input with the following weights: [
 
 ### Twist Level Filters
 
-The following twist level filters were done on twists smoothed with 10-sample FIR component filters with the following weights: [0.35, 0.15, 0.1, 0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05].
+The following twist level filters were done on twists smoothed with 5-sample moving average component filters.
 
 #### Velocity Limiting
 
-Response to a velocity constrait at +/- 0.7 (original input is from +/- 1.0). Input is dark blue, component filtering is red, and final twist filtering is light blue.
+Response to a velocity constrait at +/- 0.5 (original input is from +/- 1.0). Input is in red and output is in dark blue.
 
-![Velocity constraint](img/vel_limit.png)
+![Velocity constraint](img/vel_sat_maf.png)
 
 #### Acceleration Limiting
 
-Response to an acceleration constraint of +/- 1.0 (original input had no limit). Input is dark blue, component filtering is red, and final twist filtering is light blue.
+Response to an acceleration constraint of +/- 2.0 (original input had no limit). Input is in red and output is in dark blue.
 
-![Acceleration constaint](img/acc_limit.png)
+![Acceleration constaint](img/acc_sat_maf.png)
 
 #### Velocity and Acceleration Limiting
 
-Response to both a velocity (+/- 0.7) and acceleration (+/- 1.0) constraint. Input is dark blue, component filtering is red, and final twist filtering is light blue.
+Response to both a velocity (+/- 0.5) and acceleration (+/- 2.0) constraint. Input is in red and output is in dark blue.
 
-![Velocity and acceleration constraint](img/vel_acc_limit.png)
+![Velocity and acceleration constraint](img/vel_acc_sat_maf.png)

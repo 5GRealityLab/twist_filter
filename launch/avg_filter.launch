@@ -1,4 +1,5 @@
 <launch>
+    <arg name='active_filters'  default='$(find twist_filter)/config/active_filters_default.yaml' />
     <arg name='filter_config'   default='$(find twist_filter)/config/default_avg.yaml' />
     <arg name='filter_name'     default='fir_twist_filter' />
     <arg name='input_topic'     default='joy_out' />
@@ -8,6 +9,7 @@
     <node name='$(arg filter_name)' pkg='twist_filter' type='init_fir.py' output='screen'>
         <remap from='filter_in' to='$(arg input_topic)' />
         <remap from='filter_out' to='$(arg output_topic)' />
+        <rosparam command='load' file='$(arg active_filters)' />
     </node>
 
     <!-- Load initial paramters from config file -->

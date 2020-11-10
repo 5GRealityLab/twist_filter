@@ -1,0 +1,9 @@
+active_filters:
+  linear:
+    x: true
+    y: false
+    z: false
+  angular:
+    x: false
+    y: false
+    z: true

@@ -100,7 +100,7 @@ Response from a 10-sample FIR filter with the following weights: [0.35, 0.15, 0.
 
 #### IIR Filter
 
-Response from an IIR filter with a 10-sample input with the following weights: [0.35, 0.15, 0.1, 0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05], and a 5-sample feedback output with the following weights: [0.1, 0.2, 0.2, 0.25, 0.25]. Input is in blue and output is in red.
+Response from an IIR filter with a 10-sample input with the following weights: [0.35, 0.15, 0.1, 0.1, 0.05, 0.05, 0.05, 0.05, 0.05, 0.05], and a 5-sample feedback output with the following weights: [0.1, 0.2, 0.2, 0.25, 0.25]. Input is in purple and output is in green.
 
 ![IIR](img/iir.png)
 

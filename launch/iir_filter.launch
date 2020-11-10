@@ -1,11 +1,17 @@
 <launch>
     <arg name='filter_config'   default='$(find twist_filter)/config/default_iir.yaml' />
-    <arg name='timeout'         default='0.25' />
     <arg name='filter_name'     default='iir_twist_filter' />
+    <arg name='input_topic'     default='joy_out' />
+    <arg name='output_topic'    default='filter_out' />
 
     <!-- Launch filter -->
     <node name='$(arg filter_name)' pkg='twist_filter' type='init_iir.py' output='screen'>
-        <rosparam file="$(arg filter_config)" command="load" />
-        <param name='input_timeout' value='$(arg timeout)' />
+        <remap from='filter_in' to='$(arg input_topic)' />
+        <remap from='filter_out' to='$(arg output_topic)' />
+    </node>
+
+    <!-- Load initial paramters from config file -->
+    <node name='init_filter_set' pkg='dynamic_reconfigure' type='dynparam' args='set_from_parameters $(arg filter_name)'>
+        <rosparam file='$(arg filter_config)' command='load' />
     </node>
 </launch>

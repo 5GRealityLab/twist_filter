@@ -6,6 +6,7 @@ from geometry_msgs.msg import Twist
 from dynamic_reconfigure.server import Server
 from twist_filter.cfg import FilterConfig
 
+
 class TwistFilter(object):
     def __init__(self, components):
         # Set component filters
@@ -27,7 +28,7 @@ class TwistFilter(object):
         self.sub_cmd_in = rospy.Subscriber('filter_in', Twist, self.update_twist)
         self.pub_cmd_out = rospy.Publisher('filter_out', Twist, queue_size=10)
 
-        ## Uncomment to publish smoothed twist without velocity/acceleration filtering
+        # Uncomment to publish smoothed twist without velocity/acceleration filtering
         # self.pub_cmd_smoothed = rospy.Publisher('filter_smooth', Twist, queue_size=10)
 
         # Start command publisher
@@ -75,7 +76,7 @@ class TwistFilter(object):
         # Otherwise keep publishing
         else:
             self.stopped = False
-            if cmd != None:
+            if cmd is not None:
                 self.pub_cmd_out.publish(cmd)
 
     def filter_twist(self, data):
@@ -86,23 +87,19 @@ class TwistFilter(object):
         for key in self.filters.angular:
             setattr(cmd_out.angular, key, self.filters.angular[key].filter_signal(getattr(data.angular, key)))
 
-        ## Uncomment to publish smoothed twist without velocity/acceleration filtering
+        # Uncomment to publish smoothed twist without velocity/acceleration filtering
         # self.pub_cmd_smoothed.publish(cmd_out)
 
         # Get time step
         time_now = rospy.Time.now()
         time_delta = time_now.to_sec() - self.time_prev.to_sec()
 
-        # # Exit if time step is zero
-        # if time_delta < 0.0000001:
-        #     return
-
         # Saturate at max velocities and scale
         if self.linear_vel_max > 0 or self.angular_vel_max > 0:
             cmd_out = self._saturate_vel(cmd_out, self.linear_vel_max, self.angular_vel_max)
 
         # Saturate at max accelerations and scale
-        if self.linear_acc_max > 0 or self.angular_acc_max > 0:
+        if (self.linear_acc_max > 0 or self.angular_acc_max > 0) and time_delta > 0.00001:
             cmd_out = self._saturate_acc(cmd_out, self.linear_acc_max, self.angular_acc_max, time_delta)
 
         # Update previous values
@@ -129,7 +126,7 @@ class TwistFilter(object):
         '''
         @brief Returns ratio of the vector magnitude to specified max velocity
                and acceleration
-            
+
         @param l_mag - Linear magnitude
         @param a_mag - Angular magnitude
         @param l_max - Linear maximum limit
@@ -142,7 +139,7 @@ class TwistFilter(object):
             l_r = 1.0
         else:
             l_r = l_max / l_mag
-        
+
         if a_mag <= a_max:
             a_r = 1.0
         else:
@@ -165,7 +162,7 @@ class TwistFilter(object):
         for r in ratios:
             if r <= 1.0:
                 valid.append(r)
-        
+
         # Sort array from smallest to largest
         if len(valid) > 1:
             valid.sort()
@@ -178,7 +175,7 @@ class TwistFilter(object):
         # Saturate linear
         # Get magnitude
         mag = self._get_mag(sat_twist.linear)
-        
+
         # If magnitude is larger than max, saturate
         if mag > l_max:
             # Get ratio of current mag and max mag
@@ -190,7 +187,7 @@ class TwistFilter(object):
         # Saturate Angular
         # Get magnitude
         mag = self._get_mag(sat_twist.angular)
-        
+
         # If magnitude is larger than max, saturate
         if mag > a_max:
             # Get ratio of current mag and max mag
@@ -234,113 +231,6 @@ class TwistFilter(object):
         sat_twist.angular.z = (acc.angular.z * time_delta) + self.twist_prev.angular.z
 
         return sat_twist
-
-    # def _saturate_vel(self, v, l_max, a_max):
-    #     '''
-    #     @brief Saturate and scale input twist according to linear and angular
-    #            velocity limits
-        
-    #     @param v - Input twist
-    #     @returns sat_twist - Saturated output twist
-    #     '''
-
-    #     sat_twist = Twist()
-    #     sat_twist.linear.x = v.linear.x
-    #     sat_twist.linear.y = v.linear.y
-    #     sat_twist.linear.z = v.linear.z
-    #     sat_twist.angular.x = v.angular.x
-    #     sat_twist.angular.y = v.angular.y
-    #     sat_twist.angular.z = v.angular.z
-
-    #     # Calculate linear and angular magnitudes and get their ratios
-    #     l_mag, a_mag = self._get_twist_mag(sat_twist)
-    #     l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
-
-    #     # Determine the order in which to scale the twist
-    #     scale_order = self._get_scaling_order([l_ratio, a_ratio])
-        
-    #     # Scale velocities
-    #     for r in scale_order:
-    #         if l_ratio >= 1.0 and a_ratio >= 1.0:
-    #             break
-    #         else:
-    #             sat_twist = self._scale_twist(sat_twist, r)
-
-    #             # Calculate new linear and angular magnitudes and get their ratios
-    #             l_mag, a_mag = self._get_twist_mag(sat_twist)
-    #             l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
-
-    #     return sat_twist
-
-    # def _saturate_acc(self, v, l_max, a_max, time_delta):
-    #     '''
-    #     @brief Scales input twist so that it is constrained by the maximum
-    #            linear and angular acceleration limits
-        
-    #     @param v - Input twist
-    #     @param linear_max - Linear acceleration max
-    #     @param angular_max - Angular acceleration max
-    #     @returns sat_twist - Saturated twist
-    #     '''
-
-    #     sat_twist = Twist()
-    #     sat_twist.linear.x = v.linear.x
-    #     sat_twist.linear.y = v.linear.y
-    #     sat_twist.linear.z = v.linear.z
-    #     sat_twist.angular.x = v.angular.x
-    #     sat_twist.angular.y = v.angular.y
-    #     sat_twist.angular.z = v.angular.z
-
-    #     # Get linear acceleration
-    #     acc = self._get_acc(sat_twist, time_delta)
-
-    #     # Calculate magnitudes and get their ratios
-    #     l_mag, a_mag = self._get_twist_mag(acc)
-    #     l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
-
-    #     # Determine the order in which to scale acceleration
-    #     scale_order = self._get_scaling_order([l_ratio, a_ratio])
-
-    #     # Scale accelerations
-    #     for r in scale_order:
-    #         if l_ratio >= 1.0 and a_ratio >= 1.0:
-    #             break
-    #         else:
-    #             # Multiply each acceleration value by the scaling ratio
-    #             acc = self._scale_twist(acc, r)
-
-    #             # Calculate new linear and angular magnitudes and get their ratios
-    #             l_mag, a_mag = self._get_twist_mag(sat_twist)
-    #             l_ratio, a_ratio = self._get_max_ratios(l_mag, a_mag, l_max, a_max)
-
-    #     # Solve for twist values given the new scaled acceleration values
-    #     sat_twist.linear.x = (acc.linear.x * time_delta) + self.twist_prev.linear.x
-    #     sat_twist.linear.y = (acc.linear.y * time_delta) + self.twist_prev.linear.y
-    #     sat_twist.linear.z = (acc.linear.z * time_delta) + self.twist_prev.linear.z
-    #     sat_twist.angular.x = (acc.angular.x * time_delta) + self.twist_prev.angular.x
-    #     sat_twist.angular.y = (acc.angular.y * time_delta) + self.twist_prev.angular.y
-    #     sat_twist.angular.z = (acc.angular.z * time_delta) + self.twist_prev.angular.z
-
-    #     return sat_twist
-
-    # def _scale_twist(self, v, ratio):
-    #     '''
-    #     @brief Scales the input twist by the scaling factor
-
-    #     @param v - Input twist
-    #     @param ratio - Scaling factor
-    #     @returns scaled_twist - Scaled twist
-    #     '''
-
-    #     scaled_twist = v
-    #     scaled_twist.linear.x *= ratio
-    #     scaled_twist.linear.y *= ratio
-    #     scaled_twist.linear.z *= ratio
-    #     scaled_twist.angular.x *= ratio
-    #     scaled_twist.angular.y *= ratio
-    #     scaled_twist.angular.z *= ratio
-
-    #     return scaled_twist
 
     def _get_acc(self, v, time_delta):
         '''

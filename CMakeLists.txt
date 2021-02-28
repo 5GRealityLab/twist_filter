@@ -9,9 +9,9 @@ project(twist_filter)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   dynamic_reconfigure
+  geometry_msgs
   rospy
   std_msgs
-  geometry_msgs
 )
 
 ## System dependencies are found with CMake's conventions
